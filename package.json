@@ -1,10 +1,8 @@
 {
-  "name": "express-typescript-boilerplate",
-  "version": "1.0.14",
-  "description": "An Express boilerplate backend",
-  "author": "Edwin Hernandez",
-  "repository": "edwinhern/express-typescript-2024",
-  "license": "MIT",
+  "name": "kin-crowdfunded-challenges",
+  "version": "0.0.1",
+  "description": "Node.js backend of the kin crowdfunded and crowdvoted challenges with prize pools",
+  "author": "Aryan K",
   "main": "index.ts",
   "private": true,
   "scripts": {
