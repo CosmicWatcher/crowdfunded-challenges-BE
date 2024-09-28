@@ -38,10 +38,7 @@ authRouter.get("/confirm", async (req: Request, res: Response) => {
   res.redirect(303, "/auth/auth-code-error");
 });
 
-export const signupSchema = z.object({
-  query: z.object({ email: z.string(), password: z.string() }),
-});
-authRouter.get("/signup", validateRequest(signupSchema), async (req: Request, res: Response, next: NextFunction) => {
+authRouter.get("/signup", async (req: Request, res: Response, next: NextFunction) => {
   const email = req.query.email;
   const password = req.query.password;
 
