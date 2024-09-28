@@ -12,4 +12,5 @@ export const env = cleanEnv(process.env, {
   COMMON_RATE_LIMIT_WINDOW_MS: num({ devDefault: testOnly(1000) }),
   SUPABASE_ANON_KEY: str(),
   SUPABASE_URL: host(),
+  KIN_DESTINATION: str(),
 });
