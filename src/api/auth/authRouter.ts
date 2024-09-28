@@ -41,20 +41,12 @@ authRouter.get("/signup", async (req: Request, res: Response, next: NextFunction
   if (!error) {
     const serviceResponse = ServiceResponse.success("Account Created", data);
     handleServiceResponse(serviceResponse, res);
-  } else if (isAuthWeakPasswordError(error)) {
-    const serviceResponse = ServiceResponse.failure(error.message, null, error.status);
-    handleServiceResponse(serviceResponse, res);
-  } else if (isAuthApiError(error) && error.code === "user_already_exists") {
-    const serviceResponse = ServiceResponse.failure(error.message, null, error.status);
-    handleServiceResponse(serviceResponse, res);
-  } else if (isAuthApiError(error) && error.code === "validation_failed") {
-    const serviceResponse = ServiceResponse.failure(error.message, null, error.status);
-    handleServiceResponse(serviceResponse, res);
   } else {
-    next(error);
+    const serviceResponse = ServiceResponse.failure(error.message, null, error.status);
+    handleServiceResponse(serviceResponse, res);
   }
 });
 
-authRouter.get("/auth-code-error", (req: Request, res: Response) => {
+authRouter.get("/auth-code-error", (_req: Request, res: Response) => {
   res.send("<h2>auth-code-error</h2>");
 });
