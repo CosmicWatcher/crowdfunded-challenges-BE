@@ -1,4 +1,4 @@
-import code from "@code-wallet/client";
+import { paymentIntents } from "@code-wallet/client";
 import express, { type Request, type Response, type Router } from "express";
 
 import { ServiceResponse } from "@/common/models/serviceResponse";
@@ -12,7 +12,7 @@ codeWalletRouter.post("/create-intent", async (req: Request, res: Response) => {
   const currency = "usd";
   const destination = env.KIN_DESTINATION;
 
-  const { clientSecret, id } = await code.paymentIntents.create({
+  const { clientSecret, id } = await paymentIntents.create({
     mode: "payment",
     amount,
     currency,
