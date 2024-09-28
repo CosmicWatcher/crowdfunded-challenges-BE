@@ -1,22 +1,12 @@
-import { OpenAPIRegistry } from "@asteasolutions/zod-to-openapi";
 import { type EmailOtpType, isAuthApiError, isAuthWeakPasswordError } from "@supabase/supabase-js";
 import express, { type NextFunction, type Request, type Response, type Router } from "express";
-import { z } from "zod";
 
-import { createApiResponse } from "@/api-docs/openAPIResponseBuilders";
 import { ServiceResponse } from "@/common/models/serviceResponse";
-import { handleServiceResponse, validateRequest } from "@/common/utils/httpHandlers";
+import { handleServiceResponse } from "@/common/utils/httpHandlers";
 import { createClient } from "@/common/utils/supabase";
 
-export const authRegistry = new OpenAPIRegistry();
 export const authRouter: Router = express.Router();
 
-authRegistry.registerPath({
-  method: "get",
-  path: "/auth/confirm",
-  tags: ["auth"],
-  responses: createApiResponse(z.null(), "Success"),
-});
 authRouter.get("/confirm", async (req: Request, res: Response) => {
   const token_hash = req.query.token_hash;
   const type = req.query.type;
