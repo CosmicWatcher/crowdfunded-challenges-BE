@@ -13,31 +13,26 @@ codeWalletRouter.post("/create-intent", (_req: Request, res: Response) => {
   const destination = env.KIN_DESTINATION;
 
   async function create() {
-    try {
-      const { clientSecret } = await paymentIntents.create({
-        mode: "payment",
-        amount,
-        currency,
-        destination,
-      });
-      const serviceResponse = ServiceResponse.success("Intent Created", {
-        amount,
-        currency,
-        destination,
-        clientSecret,
-      });
-      return handleServiceResponse(serviceResponse, res);
-    } catch (error) {
-      const serviceResponse = ServiceResponse.failure(String(error), null, 500);
-      return handleServiceResponse(serviceResponse, res);
-    }
+    const { clientSecret } = await paymentIntents.create({
+      mode: "payment",
+      amount,
+      currency,
+      destination,
+    });
+    const serviceResponse = ServiceResponse.success("Intent Created", {
+      amount,
+      currency,
+      destination,
+      clientSecret,
+    });
+    return handleServiceResponse(serviceResponse, res);
   }
   create()
     .then((ret) => {
       return ret;
     })
-    .catch((rej) => {
-      const serviceResponse = ServiceResponse.failure(String(rej), null, 500);
+    .catch((err) => {
+      const serviceResponse = ServiceResponse.failure(String(err), null, 500);
       return handleServiceResponse(serviceResponse, res);
     });
 });
