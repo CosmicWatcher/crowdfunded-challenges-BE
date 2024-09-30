@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 import type { User } from "@/api/user/userModel";
 
 // TODO change to sqlite
@@ -27,6 +28,6 @@ export class UserRepository {
   }
 
   async findByIdAsync(id: number): Promise<User | null> {
-    return users.find((user) => user.id === id) || null;
+    return users.find((user) => user.id === id) ?? null;
   }
 }

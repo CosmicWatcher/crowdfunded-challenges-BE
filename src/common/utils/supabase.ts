@@ -1,5 +1,9 @@
 import { env } from "@/common/utils/envConfig";
-import { createServerClient, parseCookieHeader, serializeCookieHeader } from "@supabase/ssr";
+import {
+  createServerClient,
+  parseCookieHeader,
+  serializeCookieHeader,
+} from "@supabase/ssr";
 import type { Request, Response } from "express";
 
 export const createClient = (req: Request, res: Response) => {
@@ -10,7 +14,10 @@ export const createClient = (req: Request, res: Response) => {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value, options }) =>
-          res.appendHeader("Set-Cookie", serializeCookieHeader(name, value, options)),
+          res.appendHeader(
+            "Set-Cookie",
+            serializeCookieHeader(name, value, options),
+          ),
         );
       },
     },
