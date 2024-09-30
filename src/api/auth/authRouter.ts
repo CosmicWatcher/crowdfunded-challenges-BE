@@ -1,5 +1,6 @@
-import { type EmailOtpType, isAuthApiError, isAuthWeakPasswordError } from "@supabase/supabase-js";
-import express, { type NextFunction, type Request, type Response, type Router } from "express";
+/* eslint-disable @typescript-eslint/no-misused-promises */
+import { type EmailOtpType } from "@supabase/supabase-js";
+import express, { type Request, type Response, type Router } from "express";
 
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { handleServiceResponse } from "@/common/utils/httpHandlers";
@@ -28,7 +29,7 @@ authRouter.get("/confirm", async (req: Request, res: Response) => {
   res.redirect(303, "/auth/auth-code-error");
 });
 
-authRouter.get("/signup", async (req: Request, res: Response, next: NextFunction) => {
+authRouter.get("/signup", async (req: Request, res: Response) => {
   const email = req.query.email;
   const password = req.query.password;
 
@@ -40,10 +41,14 @@ authRouter.get("/signup", async (req: Request, res: Response, next: NextFunction
 
   if (!error) {
     const serviceResponse = ServiceResponse.success("Account Created", data);
-    handleServiceResponse(serviceResponse, res);
+    return handleServiceResponse(serviceResponse, res);
   } else {
-    const serviceResponse = ServiceResponse.failure(error.message, null, error.status);
-    handleServiceResponse(serviceResponse, res);
+    const serviceResponse = ServiceResponse.failure(
+      error.message,
+      null,
+      error.status,
+    );
+    return handleServiceResponse(serviceResponse, res);
   }
 });
 

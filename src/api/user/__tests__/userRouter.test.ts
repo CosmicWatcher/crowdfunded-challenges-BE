@@ -11,14 +11,16 @@ describe("User API Endpoints", () => {
     it("should return a list of users", async () => {
       // Act
       const response = await request(app).get("/users");
-      const responseBody: ServiceResponse<User[]> = response.body;
+      const responseBody = response.body as ServiceResponse<User[]>;
 
       // Assert
       expect(response.statusCode).toEqual(StatusCodes.OK);
       expect(responseBody.success).toBeTruthy();
       expect(responseBody.message).toContain("Users found");
       expect(responseBody.responseObject.length).toEqual(users.length);
-      responseBody.responseObject.forEach((user, index) => compareUsers(users[index] as User, user));
+      responseBody.responseObject.forEach((user, index) =>
+        compareUsers(users[index], user),
+      );
     });
   });
 
@@ -26,17 +28,18 @@ describe("User API Endpoints", () => {
     it("should return a user for a valid ID", async () => {
       // Arrange
       const testId = 1;
-      const expectedUser = users.find((user) => user.id === testId) as User;
+      const expectedUser = users.find((user) => user.id === testId)!;
 
       // Act
       const response = await request(app).get(`/users/${testId}`);
-      const responseBody: ServiceResponse<User> = response.body;
+      const responseBody = response.body as ServiceResponse<User>;
 
       // Assert
       expect(response.statusCode).toEqual(StatusCodes.OK);
       expect(responseBody.success).toBeTruthy();
       expect(responseBody.message).toContain("User found");
-      if (!expectedUser) throw new Error("Invalid test data: expectedUser is undefined");
+      if (!expectedUser)
+        throw new Error("Invalid test data: expectedUser is undefined");
       compareUsers(expectedUser, responseBody.responseObject);
     });
 
@@ -46,7 +49,7 @@ describe("User API Endpoints", () => {
 
       // Act
       const response = await request(app).get(`/users/${testId}`);
-      const responseBody: ServiceResponse = response.body;
+      const responseBody = response.body as ServiceResponse;
 
       // Assert
       expect(response.statusCode).toEqual(StatusCodes.NOT_FOUND);
@@ -59,7 +62,7 @@ describe("User API Endpoints", () => {
       // Act
       const invalidInput = "abc";
       const response = await request(app).get(`/users/${invalidInput}`);
-      const responseBody: ServiceResponse = response.body;
+      const responseBody = response.body as ServiceResponse;
 
       // Assert
       expect(response.statusCode).toEqual(StatusCodes.BAD_REQUEST);

@@ -6,6 +6,7 @@ const unexpectedRequest: RequestHandler = (_req, res) => {
 };
 
 const addErrorToRequestLog: ErrorRequestHandler = (err, _req, res, next) => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   res.locals.err = err;
   next(err);
 };
