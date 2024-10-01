@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { type EmailOtpType } from "@supabase/supabase-js";
 import express, { type Request, type Response, type Router } from "express";
+import { StatusCodes } from "http-status-codes";
 
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { handleServiceResponse } from "@/common/utils/httpHandlers";
@@ -21,32 +22,44 @@ authRouter.get("/confirm", async (req: Request, res: Response) => {
     });
 
     if (!error && typeof next === "string") {
-      res.redirect(303, `/${next.slice(1)}`);
+      res.redirect(StatusCodes.SEE_OTHER, `/${next.slice(1)}`);
     }
   }
 
   // return the user to an error page with some instructions
-  res.redirect(303, "/auth/auth-code-error");
+  res.redirect(StatusCodes.SEE_OTHER, "/auth/auth-code-error");
 });
 
-authRouter.get("/signup", async (req: Request, res: Response) => {
-  const email = req.query.email;
-  const password = req.query.password;
+authRouter.post("/signup", async (req: Request, res: Response) => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  const email = req.body.email;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  const password = req.body.password;
 
-  const supabase = createClient(req, res);
-  const { data, error } = await supabase.auth.signUp({
-    email: email as string,
-    password: password as string,
-  });
-
-  if (!error) {
-    const serviceResponse = ServiceResponse.success("Account Created", data);
-    return handleServiceResponse(serviceResponse, res);
-  } else {
+  try {
+    const supabase = createClient(req, res);
+    const { data, error } = await supabase.auth.signUp({
+      email: email as string,
+      password: password as string,
+    });
+    if (!error) {
+      const serviceResponse = ServiceResponse.success("Account Created", data);
+      return handleServiceResponse(serviceResponse, res);
+    } else {
+      const serviceResponse = ServiceResponse.failure(
+        error.message,
+        null,
+        error.status !== undefined && error.status in StatusCodes
+          ? error.status
+          : StatusCodes.INTERNAL_SERVER_ERROR,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
+  } catch (err) {
     const serviceResponse = ServiceResponse.failure(
-      error.message,
+      String(err),
       null,
-      error.status,
+      StatusCodes.INTERNAL_SERVER_ERROR,
     );
     return handleServiceResponse(serviceResponse, res);
   }
