@@ -22,6 +22,7 @@ app.set("trust proxy", true);
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(helmet());
 app.use(rateLimiter);
