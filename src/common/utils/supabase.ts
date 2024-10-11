@@ -7,7 +7,7 @@ import {
 import type { Request, Response } from "express";
 
 export const createClient = (req: Request, res: Response) => {
-  return createServerClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+  return createServerClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     cookies: {
       getAll() {
         return parseCookieHeader(req.headers.cookie ?? "");
