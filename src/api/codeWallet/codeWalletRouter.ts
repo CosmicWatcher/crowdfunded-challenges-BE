@@ -3,7 +3,7 @@ import { paymentIntents } from "@code-wallet/client";
 import express, { type Request, type Response, type Router } from "express";
 
 import { ServiceResponse } from "@/common/models/serviceResponse";
-import { env } from "@/common/utils/envConfig";
+import { env } from "@/common/configs/env";
 import { handleServiceResponse } from "@/common/utils/httpHandlers";
 import { StatusCodes } from "http-status-codes";
 

@@ -8,10 +8,11 @@ import { authRouter } from "@/api/auth/authRouter";
 import { codeWalletRouter } from "@/api/codeWallet/codeWalletRouter";
 import { healthCheckRouter } from "@/api/healthCheck/healthCheckRouter";
 import { userRouter } from "@/api/user/userRouter";
+import { taskRouter } from "@/api/task/taskRouter";
 import errorHandler from "@/common/middleware/errorHandler";
 import rateLimiter from "@/common/middleware/rateLimiter";
 import requestLogger from "@/common/middleware/requestLogger";
-import { env } from "@/common/utils/envConfig";
+import { env } from "@/common/configs/env";
 
 const logger = pino({ name: "server start" });
 const app: Express = express();
@@ -34,6 +35,7 @@ app.use(requestLogger);
 app.use("/health-check", healthCheckRouter);
 app.use("/auth", authRouter);
 app.use("/users", userRouter);
+app.use("/tasks", taskRouter);
 app.use("/codewallet", codeWalletRouter);
 
 // Swagger UI
