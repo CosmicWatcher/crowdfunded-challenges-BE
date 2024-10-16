@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import { type EmailOtpType } from "@supabase/supabase-js";
 import express, { type Request, type Response, type Router } from "express";
 import { StatusCodes } from "http-status-codes";
@@ -31,9 +30,7 @@ authRouter.get("/confirm", async (req: Request, res: Response) => {
 });
 
 authRouter.post("/signup", async (req: Request, res: Response) => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   const email = req.body.email;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   const password = req.body.password;
 
   try {
