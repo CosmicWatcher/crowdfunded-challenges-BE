@@ -1,5 +1,5 @@
 import { Database } from "@/common/types/database.types";
-import { env } from "@/common/utils/envConfig";
+import { env } from "@/common/configs/env";
 import {
   createServerClient,
   parseCookieHeader,
