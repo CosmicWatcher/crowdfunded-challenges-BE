@@ -59,7 +59,7 @@ async function createTaskInvalidInput(payload: object) {
     .set("Content-Type", "application/json")
     .set("Accept", "application/json");
   const responseBody = response.body as ServiceResponse<null>;
-  console.warn(responseBody.message);
+
   // Assert
   expect(response.statusCode).toEqual(StatusCodes.BAD_REQUEST);
   expect(responseBody.success).toBeFalsy();
