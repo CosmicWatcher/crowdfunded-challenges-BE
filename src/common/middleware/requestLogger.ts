@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Request, RequestHandler, Response } from "express";
@@ -27,19 +27,39 @@ interface PinoCustomProps {
 }
 
 const requestLogger = (options?: Options): RequestHandler[] => {
-  const pinoOptions: Options = {
-    enabled: env.isProduction,
+  let pinoOptions: Options = {
     customProps: customProps as unknown as Options["customProps"],
-    redact: [],
+    redact: {
+      paths: [
+        customAttributeKeys.req ?? "req",
+        customAttributeKeys.res ?? "res",
+      ],
+      remove: true,
+    },
     genReqId,
     customLogLevel,
-    customSuccessMessage,
-    customReceivedMessage: (req) => `request received: ${req.method}`,
+    customReceivedMessage: (req) =>
+      `request received: ${req.method} ${req.url}`,
     customErrorMessage: (_req, res) =>
       `request errored with status code: ${res.statusCode}`,
     customAttributeKeys,
     ...options,
   };
+
+  if (env.isProduction) {
+    pinoOptions = {
+      customProps: customProps as unknown as Options["customProps"],
+      redact: [],
+      genReqId,
+      customLogLevel,
+      customSuccessMessage,
+      customReceivedMessage: (req) => `request received: ${req.method}`,
+      customErrorMessage: (_req, res) =>
+        `request errored with status code: ${res.statusCode}`,
+      customAttributeKeys,
+      ...options,
+    };
+  }
   return [responseBodyMiddleware, pinoHttp(pinoOptions)];
 };
 
@@ -54,7 +74,10 @@ const customProps = (req: Request, res: Response): PinoCustomProps => ({
   request: req,
   response: res,
   error: res.locals.err,
-  responseBody: res.locals.responseBody,
+  responseBody:
+    !env.isProduction && res.statusCode < StatusCodes.BAD_REQUEST
+      ? undefined
+      : res.locals.responseBody,
 });
 
 const responseBodyMiddleware: RequestHandler = (_req, res, next) => {
