@@ -34,24 +34,6 @@ export interface Database {
   };
   public: {
     Tables: {
-      solana_payer_secret: {
-        Row: {
-          created_at: string;
-          id: string;
-          private_key: string | null;
-        };
-        Insert: {
-          created_at?: string;
-          id?: string;
-          private_key?: string | null;
-        };
-        Update: {
-          created_at?: string;
-          id?: string;
-          private_key?: string | null;
-        };
-        Relationships: [];
-      };
       task_funding: {
         Row: {
           amount_fiat: number | null;
