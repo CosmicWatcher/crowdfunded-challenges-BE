@@ -1,7 +1,30 @@
 import dotenv from "dotenv";
-import { cleanEnv, host, num, port, str, json, testOnly } from "envalid";
+import {
+  cleanEnv,
+  host,
+  num,
+  port,
+  str,
+  json,
+  testOnly,
+  EnvError,
+  makeExactValidator,
+} from "envalid";
 
 dotenv.config();
+
+const secretKey = makeExactValidator<Uint8Array>((input: string) => {
+  try {
+    const decodedSecretKey = Uint8Array.from(
+      JSON.parse(input) as Iterable<number>,
+    );
+    return decodedSecretKey;
+  } catch (err) {
+    throw new EnvError(
+      `Invalid secret key in environment variable '${input}'! ${String(err)}`,
+    );
+  }
+});
 
 export const env = cleanEnv(process.env, {
   NODE_ENV: str({
@@ -17,4 +40,7 @@ export const env = cleanEnv(process.env, {
   SUPABASE_SERVICE_ROLE_KEY: str(),
   SUPABASE_URL: host(),
   KIN_DESTINATION: str(),
+  SOLANA_PAYER_SECRET: secretKey(),
+  SOLANA_RPC: str({ choices: ["devnet", "testnet", "mainnet-beta"] }),
+  KIN_MINT_ADDRESS: str(),
 });
