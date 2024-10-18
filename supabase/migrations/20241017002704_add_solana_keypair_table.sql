@@ -1,4 +1,4 @@
-create table public.solana_keypair (
+create table public.task_solana_keypairs (
     id uuid default gen_random_uuid(),
     private_key text,
     public_key text,
@@ -7,4 +7,4 @@ create table public.solana_keypair (
     primary key (id)
 );
 
-alter table public.solana_keypair enable row level security;
+alter table public.task_solana_keypairs enable row level security;
