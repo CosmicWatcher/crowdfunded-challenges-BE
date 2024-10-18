@@ -10,6 +10,7 @@ import {
 import { createClient } from "@/common/utils/supabase";
 import { z } from "zod";
 import { FORM_LIMITS, TASK_TYPES } from "@/common/configs/constants";
+import { getOrCreateKeypair } from "@/common/utils/solana";
 
 export const taskRouter: Router = express.Router();
 
@@ -30,20 +31,22 @@ const createTaskSchema = z.object({
     maxWinners: z
       .number()
       .min(FORM_LIMITS.TASK_CREATION.MAX_WINNERS.MIN, {
-        message: `Max winners must be at least ${FORM_LIMITS.TASK_CREATION.TITLE.MIN}`,
+        message: `Max winners must be at least ${FORM_LIMITS.TASK_CREATION.MAX_WINNERS.MIN}`,
       })
-      .max(FORM_LIMITS.TASK_CREATION.TITLE.MAX, {
+      .max(FORM_LIMITS.TASK_CREATION.MAX_WINNERS.MAX, {
         message: `Max winners must be less than ${FORM_LIMITS.TASK_CREATION.MAX_WINNERS.MAX}`,
       }),
   }),
 });
 taskRouter.post(
   "/create",
-  validateUser(),
   validateRequest(createTaskSchema),
+  validateUser(),
   async (req: Request, res: Response) => {
+    res.locals.err = "suskali";
     try {
       const supabase = createClient(req, res);
+      const { keypairID } = await getOrCreateKeypair(supabase);
 
       const { error } = await supabase.from("tasks").insert({
         created_by: req.authUser.id,
@@ -51,6 +54,7 @@ taskRouter.post(
         title: req.body.title,
         details: req.body.description,
         max_winners: req.body.maxWinners,
+        deposit_address: keypairID,
       });
       if (error) throw new Error(JSON.stringify(error));
 

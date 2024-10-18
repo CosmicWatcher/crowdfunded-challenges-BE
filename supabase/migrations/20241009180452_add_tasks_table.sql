@@ -9,7 +9,7 @@ create table public.tasks (
     title text,
     details text,
     max_winners smallint not null default 1,
-    deposit_address uuid references public.solana_keypair on delete restrict,
+    deposit_address uuid references public.task_solana_keypairs on delete restrict,
     created_at timestamptz not null default CURRENT_TIMESTAMP,
     edited_at timestamptz,
     ended_at timestamptz,
