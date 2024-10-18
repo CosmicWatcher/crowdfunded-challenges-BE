@@ -34,6 +34,24 @@ export interface Database {
   };
   public: {
     Tables: {
+      solana_payer_secret: {
+        Row: {
+          created_at: string;
+          id: string;
+          private_key: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          private_key?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          private_key?: string | null;
+        };
+        Relationships: [];
+      };
       task_funding: {
         Row: {
           amount_fiat: number | null;
@@ -87,6 +105,27 @@ export interface Database {
             referencedColumns: ["id"];
           },
         ];
+      };
+      task_solana_keypairs: {
+        Row: {
+          created_at: string;
+          id: string;
+          private_key: string | null;
+          public_key: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          private_key?: string | null;
+          public_key?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          private_key?: string | null;
+          public_key?: string | null;
+        };
+        Relationships: [];
       };
       task_submission_votes: {
         Row: {
@@ -229,6 +268,13 @@ export interface Database {
             referencedRelation: "users";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "tasks_deposit_address_fkey";
+            columns: ["deposit_address"];
+            isOneToOne: false;
+            referencedRelation: "task_solana_keypairs";
+            referencedColumns: ["id"];
+          },
         ];
       };
       users: {
@@ -262,7 +308,157 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      akeys: {
+        Args: {
+          "": unknown;
+        };
+        Returns: string[];
+      };
+      avals: {
+        Args: {
+          "": unknown;
+        };
+        Returns: string[];
+      };
+      each: {
+        Args: {
+          hs: unknown;
+        };
+        Returns: Record<string, unknown>[];
+      };
+      ghstore_compress: {
+        Args: {
+          "": unknown;
+        };
+        Returns: unknown;
+      };
+      ghstore_decompress: {
+        Args: {
+          "": unknown;
+        };
+        Returns: unknown;
+      };
+      ghstore_in: {
+        Args: {
+          "": unknown;
+        };
+        Returns: unknown;
+      };
+      ghstore_options: {
+        Args: {
+          "": unknown;
+        };
+        Returns: undefined;
+      };
+      ghstore_out: {
+        Args: {
+          "": unknown;
+        };
+        Returns: unknown;
+      };
+      hstore:
+        | {
+            Args: {
+              "": string[];
+            };
+            Returns: unknown;
+          }
+        | {
+            Args: {
+              "": Record<string, unknown>;
+            };
+            Returns: unknown;
+          };
+      hstore_hash: {
+        Args: {
+          "": unknown;
+        };
+        Returns: number;
+      };
+      hstore_in: {
+        Args: {
+          "": unknown;
+        };
+        Returns: unknown;
+      };
+      hstore_out: {
+        Args: {
+          "": unknown;
+        };
+        Returns: unknown;
+      };
+      hstore_recv: {
+        Args: {
+          "": unknown;
+        };
+        Returns: unknown;
+      };
+      hstore_send: {
+        Args: {
+          "": unknown;
+        };
+        Returns: string;
+      };
+      hstore_subscript_handler: {
+        Args: {
+          "": unknown;
+        };
+        Returns: unknown;
+      };
+      hstore_to_array: {
+        Args: {
+          "": unknown;
+        };
+        Returns: string[];
+      };
+      hstore_to_json: {
+        Args: {
+          "": unknown;
+        };
+        Returns: Json;
+      };
+      hstore_to_json_loose: {
+        Args: {
+          "": unknown;
+        };
+        Returns: Json;
+      };
+      hstore_to_jsonb: {
+        Args: {
+          "": unknown;
+        };
+        Returns: Json;
+      };
+      hstore_to_jsonb_loose: {
+        Args: {
+          "": unknown;
+        };
+        Returns: Json;
+      };
+      hstore_to_matrix: {
+        Args: {
+          "": unknown;
+        };
+        Returns: string[];
+      };
+      hstore_version_diag: {
+        Args: {
+          "": unknown;
+        };
+        Returns: number;
+      };
+      skeys: {
+        Args: {
+          "": unknown;
+        };
+        Returns: string[];
+      };
+      svals: {
+        Args: {
+          "": unknown;
+        };
+        Returns: string[];
+      };
     };
     Enums: {
       task_status: "active" | "successful" | "failed" | "deleted";
