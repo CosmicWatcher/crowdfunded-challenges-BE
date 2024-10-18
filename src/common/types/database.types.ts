@@ -92,20 +92,20 @@ export interface Database {
         Row: {
           created_at: string;
           id: string;
-          private_key: string | null;
-          public_key: string | null;
+          private_key: string;
+          public_key: string;
         };
         Insert: {
           created_at?: string;
           id?: string;
-          private_key?: string | null;
-          public_key?: string | null;
+          private_key: string;
+          public_key: string;
         };
         Update: {
           created_at?: string;
           id?: string;
-          private_key?: string | null;
-          public_key?: string | null;
+          private_key?: string;
+          public_key?: string;
         };
         Relationships: [];
       };
