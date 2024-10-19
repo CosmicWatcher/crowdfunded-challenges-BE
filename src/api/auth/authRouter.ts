@@ -1,9 +1,6 @@
 import { type EmailOtpType } from "@supabase/supabase-js";
 import express, { type Request, type Response, type Router } from "express";
 import { StatusCodes } from "http-status-codes";
-
-import { ServiceResponse } from "@/common/models/serviceResponse";
-import { handleServiceResponse } from "@/common/utils/httpHandlers";
 import { createClient } from "@/common/utils/supabase";
 
 export const authRouter: Router = express.Router();
@@ -27,39 +24,6 @@ authRouter.get("/confirm", async (req: Request, res: Response) => {
 
   // return the user to an error page with some instructions
   res.redirect(StatusCodes.SEE_OTHER, "/auth/auth-code-error");
-});
-
-authRouter.post("/signup", async (req: Request, res: Response) => {
-  const email = req.body.email;
-  const password = req.body.password;
-
-  try {
-    const supabase = createClient(req, res);
-    const { data, error } = await supabase.auth.signUp({
-      email: email as string,
-      password: password as string,
-    });
-    if (!error) {
-      const serviceResponse = ServiceResponse.success("Account Created", data);
-      return handleServiceResponse(serviceResponse, res);
-    } else {
-      const serviceResponse = ServiceResponse.failure(
-        error.message,
-        null,
-        error.status !== undefined && error.status in StatusCodes
-          ? error.status
-          : StatusCodes.INTERNAL_SERVER_ERROR,
-      );
-      return handleServiceResponse(serviceResponse, res);
-    }
-  } catch (err) {
-    const serviceResponse = ServiceResponse.failure(
-      String(err),
-      null,
-      StatusCodes.INTERNAL_SERVER_ERROR,
-    );
-    return handleServiceResponse(serviceResponse, res);
-  }
 });
 
 authRouter.get("/auth-code-error", (_req: Request, res: Response) => {
