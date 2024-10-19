@@ -1,3 +1,5 @@
+import { ServiceResponse } from "@/common/models/serviceResponse";
+import { handleServiceResponse } from "@/common/utils/httpHandlers";
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import { StatusCodes } from "http-status-codes";
 
@@ -6,9 +8,17 @@ const unexpectedRequest: RequestHandler = (_req, res) => {
 };
 
 const addErrorToRequestLog: ErrorRequestHandler = (err, _req, res, next) => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   res.locals.err = err;
-  next(err);
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  const serviceResponse = ServiceResponse.failure(
+    String(err),
+    null,
+    StatusCodes.INTERNAL_SERVER_ERROR,
+  );
+  return handleServiceResponse(serviceResponse, res);
 };
 
 export default () => [unexpectedRequest, addErrorToRequestLog];

@@ -1,5 +1,9 @@
-import express, { type Request, type Response, type Router } from "express";
-import { StatusCodes } from "http-status-codes";
+import express, {
+  type NextFunction,
+  type Request,
+  type Response,
+  type Router,
+} from "express";
 
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import {
@@ -42,8 +46,7 @@ taskRouter.post(
   "/create",
   validateRequest(createTaskSchema),
   validateUser(),
-  async (req: Request, res: Response) => {
-    res.locals.err = "suskali";
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const supabase = createClient(req, res);
       const { keypairID } = await getOrCreateKeypair(supabase);
@@ -56,18 +59,12 @@ taskRouter.post(
         max_winners: req.body.maxWinners,
         deposit_address: keypairID,
       });
-      if (error) throw new Error(JSON.stringify(error));
+      if (error) next(JSON.stringify(error));
 
       const serviceResponse = ServiceResponse.success("Task Created", null);
       return handleServiceResponse(serviceResponse, res);
     } catch (err) {
-      res.locals.err = err;
-      const serviceResponse = ServiceResponse.failure(
-        String(err),
-        null,
-        StatusCodes.INTERNAL_SERVER_ERROR,
-      );
-      return handleServiceResponse(serviceResponse, res);
+      next(err);
     }
   },
 );
