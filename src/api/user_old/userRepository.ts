@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/require-await */
-import type { User } from "@/api/user/userModel";
+import type { User } from "@/api/user_old/userModel";
 
 // TODO change to sqlite
 
