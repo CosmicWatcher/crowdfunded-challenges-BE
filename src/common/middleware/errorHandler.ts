@@ -14,11 +14,13 @@ const addErrorToRequestLog: ErrorRequestHandler = (err, _req, res, next) => {
   }
 
   const serviceResponse = ServiceResponse.failure(
-    String(err),
+    "Unexpected Error!",
     null,
     StatusCodes.INTERNAL_SERVER_ERROR,
   );
-  return handleServiceResponse(serviceResponse, res);
+  handleServiceResponse(serviceResponse, res);
+
+  next(err);
 };
 
 export default () => [unexpectedRequest, addErrorToRequestLog];

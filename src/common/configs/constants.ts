@@ -3,6 +3,13 @@ export enum TASK_TYPES {
   PERSONAL = "personal",
 }
 
+export enum TASK_STATUS {
+  ACTIVE = "active",
+  SUCCESSFUL = "successful",
+  FAILED = "failed",
+  DELETED = "deleted",
+}
+
 export const FORM_LIMITS = {
   TASK_CREATION: {
     TITLE: { MIN: 3, MAX: 200 },
