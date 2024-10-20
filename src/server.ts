@@ -4,10 +4,9 @@ import helmet from "helmet";
 import { pino } from "pino";
 
 import { openAPIRouter } from "@/api-docs/openAPIRouter";
-import { authRouter } from "@/api/auth/authRouter";
 import { codeWalletRouter } from "@/api/codeWallet/codeWalletRouter";
 import { healthCheckRouter } from "@/api/healthCheck/healthCheckRouter";
-import { userRouter } from "@/api/user/userRouter";
+import { userRouter } from "@/api/user_old/userRouter";
 import { taskRouter } from "@/api/task/taskRouter";
 import errorHandler from "@/common/middleware/errorHandler";
 import rateLimiter from "@/common/middleware/rateLimiter";
@@ -23,7 +22,6 @@ app.set("trust proxy", true);
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(helmet());
 app.use(rateLimiter);
@@ -33,7 +31,6 @@ app.use(requestLogger);
 
 // Routes
 app.use("/health-check", healthCheckRouter);
-app.use("/auth", authRouter);
 app.use("/users", userRouter);
 app.use("/tasks", taskRouter);
 app.use("/codewallet", codeWalletRouter);
