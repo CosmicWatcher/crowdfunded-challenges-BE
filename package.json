@@ -19,7 +19,6 @@
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.0.0",
     "@code-wallet/client": "^2.0.8",
-    "@prisma/client": "^5.19.1",
     "@solana/spl-token": "^0.4.8",
     "@solana/web3.js": "^1.95.3",
     "@supabase/supabase-js": "^2.45.4",
@@ -47,7 +46,6 @@
     "lint-staged": "^15.2.2",
     "pino-pretty": "^11.0.0",
     "prettier": "3.3.3",
-    "prisma": "^5.19.1",
     "rimraf": "^6.0.0",
     "supabase": "^1.192.5",
     "supertest": "^7.0.0",
