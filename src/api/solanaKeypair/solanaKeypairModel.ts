@@ -1,7 +1,8 @@
+import { Keypair } from "@solana/web3.js";
+
 import { Task } from "@/api/task/taskModel";
 import { Tables } from "@/common/types/database.types";
 import { supabase } from "@/common/utils/supabase";
-import { Keypair } from "@solana/web3.js";
 
 export class SolanaKeypair {
   static readonly TABLE_NAME = "task_solana_keypairs" as const;

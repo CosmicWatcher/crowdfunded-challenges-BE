@@ -1,14 +1,14 @@
 import dotenv from "dotenv";
 import {
+  EnvError,
   cleanEnv,
   host,
+  json,
+  makeExactValidator,
   num,
   port,
   str,
-  json,
   testOnly,
-  EnvError,
-  makeExactValidator,
 } from "envalid";
 
 dotenv.config();

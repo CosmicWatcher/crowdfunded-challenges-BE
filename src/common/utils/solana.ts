@@ -1,4 +1,5 @@
-import { clusterApiUrl, Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey, clusterApiUrl } from "@solana/web3.js";
+
 import { env } from "@/common/configs/env";
 
 export const solanaPayer = Keypair.fromSecretKey(env.SOLANA_PAYER_SECRET);

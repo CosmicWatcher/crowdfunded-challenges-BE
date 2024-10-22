@@ -6,8 +6,8 @@ import express, {
   type Router,
 } from "express";
 
-import { ServiceResponse } from "@/common/models/serviceResponse";
 import { env } from "@/common/configs/env";
+import { ServiceResponse } from "@/common/models/serviceResponse";
 import { handleServiceResponse } from "@/common/utils/helpers";
 
 export const codeWalletRouter: Router = express.Router();
