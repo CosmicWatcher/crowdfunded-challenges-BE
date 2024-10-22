@@ -1,3 +1,5 @@
+import { NextFunction, Request, Response } from "express";
+
 import { SolanaKeypair } from "@/api/solanaKeypair/solanaKeypairModel";
 import { Task } from "@/api/task/taskModel";
 import { getUserJson } from "@/api/user/userController";
@@ -5,10 +7,9 @@ import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/auth.types";
 import { TaskResponse } from "@/common/types/response.types";
 import {
-  handleServiceResponse,
   getPaginationJson,
+  handleServiceResponse,
 } from "@/common/utils/helpers";
-import { Request, Response, NextFunction } from "express";
 
 export async function getTaskJson(task: Task): Promise<TaskResponse> {
   const depositAddress = await task.getDepositAddress();

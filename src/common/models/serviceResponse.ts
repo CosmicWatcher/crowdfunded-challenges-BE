@@ -1,6 +1,7 @@
-import { ResponseObject } from "@/common/types/response.types";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
+
+import { ResponseObject } from "@/common/types/response.types";
 
 export class ServiceResponse<T = ResponseObject | null> {
   readonly success: boolean;
