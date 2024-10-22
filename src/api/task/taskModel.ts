@@ -3,18 +3,11 @@ import { User } from "@/api/user/userModel";
 import { Tables, TablesInsert } from "@/common/types/database.types";
 import { supabase } from "@/common/utils/supabase";
 
+export type TaskStatus = Tables<typeof Task.TABLE_NAME>["status"];
+export type TaskKind = Tables<typeof Task.TABLE_NAME>["kind"];
+
 export class Task {
   static readonly TABLE_NAME = "tasks" as const;
-  static readonly TYPES = {
-    COMMUNITY: "community",
-    PERSONAL: "personal",
-  };
-  static readonly STATUS = {
-    ACTIVE: "active",
-    SUCCESSFUL: "successful",
-    FAILED: "failed",
-    DELETED: "deleted",
-  };
 
   constructor(private taskData: Tables<typeof Task.TABLE_NAME>) {}
 
@@ -70,11 +63,13 @@ export class Task {
   }
 
   static async getTaskById(id: string) {
+    const status: TaskStatus = "deleted";
+
     const { data, error } = await supabase
       .from(Task.TABLE_NAME)
       .select()
       .eq("id", id)
-      .neq("status", Task.STATUS.DELETED)
+      .neq("status", status)
       .maybeSingle();
 
     if (error) throw new Error(JSON.stringify(error));
@@ -90,10 +85,12 @@ export class Task {
     rangeEnd: number,
     ascending = false,
   ) {
+    const status: TaskStatus = "deleted";
+
     const { data, error, count } = await supabase
       .from(Task.TABLE_NAME)
       .select("*", { count: "estimated" })
-      .neq("status", Task.STATUS.DELETED)
+      .neq("status", status)
       .order("created_at", { ascending })
       .range(rangeStart, rangeEnd);
     if (error) {

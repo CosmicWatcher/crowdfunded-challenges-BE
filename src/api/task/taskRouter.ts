@@ -6,7 +6,7 @@ import {
 } from "@/common/utils/validators";
 import { z } from "zod";
 import { FORM_LIMITS } from "@/common/configs/constants";
-import { Task } from "@/api/task/taskModel";
+import { TaskKind } from "@/api/task/taskModel";
 import {
   createTask,
   getTaskById,
@@ -18,12 +18,15 @@ export const taskRouter: Router = express.Router();
 const getTaskSchema = z.object({
   params: z.object({ id: commonValidations.id }),
 });
+
 const getTaskListSchema = z.object({
   query: z.object({ page: commonValidations.page }),
 });
+
+const kinds: z.ZodType<TaskKind> = z.enum(["community", "personal"]);
 const createTaskSchema = z.object({
   body: z.object({
-    kind: z.enum([Task.TYPES.COMMUNITY, Task.TYPES.PERSONAL]),
+    kind: kinds,
     title: z
       .string()
       .min(FORM_LIMITS.TASK_CREATION.TITLE.MIN, {
