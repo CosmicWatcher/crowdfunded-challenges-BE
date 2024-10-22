@@ -4,6 +4,7 @@ import type { ZodError, ZodSchema } from "zod";
 
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { supabase } from "@/common/utils/supabase";
+import { AuthenticatedRequest } from "@/common/types/auth.types";
 
 export const handleServiceResponse = (
   serviceResponse: ServiceResponse<unknown>,
@@ -77,7 +78,7 @@ export const validateUser =
       );
       return handleServiceResponse(serviceResponse, res);
     }
-    req.authUser = authRes.data.user;
+    (req as AuthenticatedRequest).authUser = authRes.data.user;
 
     next();
   };

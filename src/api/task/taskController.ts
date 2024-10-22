@@ -2,6 +2,7 @@ import { SolanaKeypair } from "@/api/solanaKeypair/solanaKeypairModel";
 import { Task } from "@/api/task/taskModel";
 import { getUserJson } from "@/api/user/userController";
 import { ServiceResponse } from "@/common/models/serviceResponse";
+import { AuthenticatedRequest } from "@/common/types/auth.types";
 import {
   handleServiceResponse,
   getPaginationJson,
@@ -89,6 +90,8 @@ export async function createTask(
   res: Response,
   next: NextFunction,
 ) {
+  const authUser = (req as AuthenticatedRequest).authUser;
+
   let keypair: SolanaKeypair | null = null;
   try {
     keypair = await SolanaKeypair.getOrCreateKeypair();
@@ -98,7 +101,7 @@ export async function createTask(
   }
   try {
     await Task.insert({
-      created_by: req.authUser.id,
+      created_by: authUser.id,
       kind: req.body.kind,
       title: req.body.title,
       details: req.body.description,
