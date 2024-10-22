@@ -3,13 +3,14 @@ import { Task } from "@/api/task/taskModel";
 import { getUserJson } from "@/api/user/userController";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/auth.types";
+import { TaskResponse } from "@/common/types/response.types";
 import {
   handleServiceResponse,
   getPaginationJson,
 } from "@/common/utils/helpers";
 import { Request, Response, NextFunction } from "express";
 
-export async function getTaskJson(task: Task) {
+export async function getTaskJson(task: Task): Promise<TaskResponse> {
   const depositAddress = await task.getDepositAddress();
   const creator = await task.getCreator();
   return {
@@ -39,7 +40,9 @@ export async function getTaskById(
       return handleServiceResponse(serviceResponse, res);
     }
 
-    const serviceResponse = ServiceResponse.success("Task Found", task);
+    const serviceResponse = ServiceResponse.success("Task Found", {
+      data: await getTaskJson(task),
+    });
     return handleServiceResponse(serviceResponse, res);
   } catch (e) {
     next(e);
