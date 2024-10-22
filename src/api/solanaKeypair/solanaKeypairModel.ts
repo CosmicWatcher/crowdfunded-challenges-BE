@@ -1,3 +1,4 @@
+import { Task } from "@/api/task/taskModel";
 import { Tables } from "@/common/types/database.types";
 import { supabase } from "@/common/utils/supabase";
 import { Keypair } from "@solana/web3.js";
@@ -46,8 +47,8 @@ export class SolanaKeypair {
   static async getKeypairNotInUse() {
     const { data, error } = await supabase
       .from(SolanaKeypair.TABLE_NAME)
-      .select("*, tasks()")
-      .is("tasks", null)
+      .select(`*, ${Task.TABLE_NAME}(id)`)
+      .is(Task.TABLE_NAME, null)
       .limit(1)
       .maybeSingle();
     if (error) throw new Error(JSON.stringify(error));
