@@ -3,7 +3,7 @@ import { StatusCodes } from "http-status-codes";
 import type { ZodError, ZodSchema } from "zod";
 
 import { ServiceResponse } from "@/common/models/serviceResponse";
-import { createClient } from "@/common/utils/supabase";
+import { supabase } from "@/common/utils/supabase";
 
 export const handleServiceResponse = (
   serviceResponse: ServiceResponse<unknown>,
@@ -12,10 +12,32 @@ export const handleServiceResponse = (
   return response.status(serviceResponse.statusCode).send(serviceResponse);
 };
 
+export function getPaginationJson(
+  itemCount: number,
+  currentPage: number,
+  returnCount: number,
+) {
+  const totalPages = Math.ceil(itemCount / returnCount);
+  return {
+    total_records: itemCount,
+    total_pages: totalPages,
+    current_page: currentPage,
+    prev_page: currentPage === 1 ? null : currentPage - 1,
+    next_page: currentPage === totalPages ? null : currentPage + 1,
+  };
+}
+
 export const validateRequest =
   (schema: ZodSchema) => (req: Request, res: Response, next: NextFunction) => {
     try {
-      schema.parse({ body: req.body, query: req.query, params: req.params });
+      const result = schema.parse({
+        body: req.body,
+        query: req.query,
+        params: req.params,
+      });
+      req.body = result.body;
+      req.query = result.query;
+      req.params = result.params;
       next();
     } catch (err) {
       const errorMessage = `Invalid input: ${(err as ZodError).errors.map((e) => e.message).join(", ")}`;
@@ -43,7 +65,6 @@ export const validateUser =
       return handleServiceResponse(serviceResponse, res);
     }
 
-    const supabase = createClient(req, res);
     const authRes = await supabase.auth.getUser(jwt);
     if (authRes.error) {
       const serviceResponse = ServiceResponse.failure(

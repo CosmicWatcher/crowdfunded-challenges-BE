@@ -4,6 +4,8 @@ export const commonValidations = {
   id: z.string().uuid({ message: "Invalid ID" }),
   page: z
     .string()
+    .optional()
+    .default("1")
     .refine(
       (data) => !Number.isNaN(Number(data)),
       "page must be a numeric value",
