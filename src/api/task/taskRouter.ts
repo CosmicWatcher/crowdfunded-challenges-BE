@@ -1,8 +1,11 @@
 import express, { type Router } from "express";
-import { validateRequest, validateUser } from "@/common/utils/httpHandlers";
+import {
+  commonValidations,
+  validateRequest,
+  validateUser,
+} from "@/common/utils/validators";
 import { z } from "zod";
 import { FORM_LIMITS } from "@/common/configs/constants";
-import { commonValidations } from "@/common/utils/commonValidation";
 import { Task } from "@/api/task/taskModel";
 import {
   createTask,

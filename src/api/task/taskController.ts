@@ -6,7 +6,7 @@ import { AuthenticatedRequest } from "@/common/types/auth.types";
 import {
   handleServiceResponse,
   getPaginationJson,
-} from "@/common/utils/httpHandlers";
+} from "@/common/utils/helpers";
 import { Request, Response, NextFunction } from "express";
 
 export async function getTaskJson(task: Task) {

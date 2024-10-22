@@ -8,7 +8,7 @@ import express, {
 
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { env } from "@/common/configs/env";
-import { handleServiceResponse } from "@/common/utils/httpHandlers";
+import { handleServiceResponse } from "@/common/utils/helpers";
 
 export const codeWalletRouter: Router = express.Router();
 
