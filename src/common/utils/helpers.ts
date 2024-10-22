@@ -1,5 +1,6 @@
 import { Response } from "express";
 import { ServiceResponse } from "@/common/models/serviceResponse";
+import { ResponsePagination } from "@/common/types/response.types";
 
 export function handleServiceResponse(
   serviceResponse: ServiceResponse<unknown>,
@@ -12,7 +13,7 @@ export function getPaginationJson(
   itemCount: number,
   currentPage: number,
   returnCount: number,
-) {
+): ResponsePagination {
   const totalPages = Math.ceil(itemCount / returnCount);
   return {
     total_records: itemCount,
