@@ -1,32 +1,24 @@
-import type { NextFunction, Request, Response } from "express";
-import { StatusCodes } from "http-status-codes";
-import type { ZodError, ZodSchema } from "zod";
-
 import { ServiceResponse } from "@/common/models/serviceResponse";
-import { supabase } from "@/common/utils/supabase";
 import { AuthenticatedRequest } from "@/common/types/auth.types";
+import { handleServiceResponse } from "@/common/utils/helpers";
+import { supabase } from "@/common/utils/supabase";
+import { Request, Response, NextFunction } from "express";
+import { StatusCodes } from "http-status-codes";
+import { z, ZodError, ZodSchema } from "zod";
 
-export const handleServiceResponse = (
-  serviceResponse: ServiceResponse<unknown>,
-  response: Response,
-) => {
-  return response.status(serviceResponse.statusCode).send(serviceResponse);
+export const commonValidations = {
+  id: z.string().uuid({ message: "Invalid ID" }),
+  page: z
+    .string()
+    .optional()
+    .default("1")
+    .refine(
+      (data) => !Number.isNaN(Number(data)),
+      "page must be a numeric value",
+    )
+    .transform(Number)
+    .refine((num) => num > 0, "page must be a positive number"),
 };
-
-export function getPaginationJson(
-  itemCount: number,
-  currentPage: number,
-  returnCount: number,
-) {
-  const totalPages = Math.ceil(itemCount / returnCount);
-  return {
-    total_records: itemCount,
-    total_pages: totalPages,
-    current_page: currentPage,
-    prev_page: currentPage === 1 ? null : currentPage - 1,
-    next_page: currentPage === totalPages ? null : currentPage + 1,
-  };
-}
 
 export const validateRequest =
   (schema: ZodSchema) => (req: Request, res: Response, next: NextFunction) => {

@@ -1,7 +1,7 @@
 import type { Request, RequestHandler, Response } from "express";
 
 import { userService } from "@/api/user_old/userService";
-import { handleServiceResponse } from "@/common/utils/httpHandlers";
+import { handleServiceResponse } from "@/common/utils/helpers";
 
 class UserController {
   public getUsers: RequestHandler = async (_req: Request, res: Response) => {
