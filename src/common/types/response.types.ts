@@ -27,6 +27,7 @@ export interface TaskResponse {
   maxWinners: number;
   status: TaskStatus;
   depositAddress: string | null;
+  fundsRaised: number;
   createdAt: string;
   editedAt: string | null;
   endedAt: string | null;
