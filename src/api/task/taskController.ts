@@ -23,6 +23,7 @@ export async function getTaskJson(task: Task): Promise<TaskResponse> {
     maxWinners: task.maxWinners,
     status: task.status,
     depositAddress: depositAddress ? depositAddress.publicKey : null,
+    fundsRaised: 420,
     createdAt: task.createdAt,
     editedAt: task.editedAt,
     endedAt: task.endedAt,
@@ -59,6 +60,8 @@ export async function getTaskList(
   const page = req.query.page as unknown as number;
   const rangeStart = (page - 1) * RETURN_COUNT;
   const rangeEnd = rangeStart + RETURN_COUNT - 1;
+
+  // await new Promise((resolve) => setTimeout(resolve, 2000));
 
   try {
     const { tasks, totalRecords } = await Task.getTaskList(
