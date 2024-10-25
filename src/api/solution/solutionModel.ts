@@ -3,37 +3,37 @@ import { User } from "@/api/user/userModel";
 import { Tables, TablesInsert } from "@/common/types/database.types";
 import { supabase } from "@/common/utils/supabase";
 
-export class Submission {
+export class Solution {
   static readonly TABLE_NAME = "task_submissions" as const;
 
-  constructor(private submissionData: Tables<typeof Submission.TABLE_NAME>) {}
+  constructor(private solutionData: Tables<typeof Solution.TABLE_NAME>) {}
 
   get id() {
-    return this.submissionData.id;
+    return this.solutionData.id;
   }
   get taskId() {
-    return this.submissionData.task_id;
+    return this.solutionData.task_id;
   }
   get createdBy() {
-    return this.submissionData.created_by;
+    return this.solutionData.created_by;
   }
   get details() {
-    return this.submissionData.details;
+    return this.solutionData.details;
   }
   get voteCount() {
-    return this.submissionData.vote_count;
+    return this.solutionData.vote_count;
   }
   get isWinner() {
-    return this.submissionData.is_winner;
+    return this.solutionData.is_winner;
   }
   get createdAt() {
-    return this.submissionData.created_at;
+    return this.solutionData.created_at;
   }
   get editedAt() {
-    return this.submissionData.edited_at;
+    return this.solutionData.edited_at;
   }
   get deletedAt() {
-    return this.submissionData.deleted_at;
+    return this.solutionData.deleted_at;
   }
 
   async getCreator(): Promise<User | null> {
@@ -46,9 +46,9 @@ export class Submission {
     return await Task.getTaskById(this.taskId);
   }
 
-  static async getSubmissionById(id: string): Promise<Submission | null> {
+  static async getSolutionById(id: string): Promise<Solution | null> {
     const { data, error } = await supabase
-      .from(Submission.TABLE_NAME)
+      .from(Solution.TABLE_NAME)
       .select("*")
       .eq("id", id)
       .maybeSingle();
@@ -56,40 +56,40 @@ export class Submission {
     if (error) throw new Error(JSON.stringify(error));
     if (!data) return null;
 
-    return new Submission(data);
+    return new Solution(data);
   }
 
-  static async getSubmissionsByTaskId(
+  static async getSolutionsByTaskId(
     taskId: string,
     rangeStart: number,
     rangeEnd: number,
     ascending = false,
-  ): Promise<{ submissions: Submission[]; totalRecords: number }> {
+  ): Promise<{ solutions: Solution[]; totalRecords: number }> {
     const { data, error, count } = await supabase
-      .from(Submission.TABLE_NAME)
+      .from(Solution.TABLE_NAME)
       .select("*", { count: "estimated" })
       .eq("task_id", taskId)
       .order("created_at", { ascending })
       .range(rangeStart, rangeEnd);
     if (error) throw new Error(JSON.stringify(error));
 
-    const submissions: Submission[] = [];
+    const solutions: Solution[] = [];
     for (const row of data) {
-      submissions.push(new Submission(row));
+      solutions.push(new Solution(row));
     }
-    return { submissions, totalRecords: count ?? submissions.length };
+    return { solutions, totalRecords: count ?? solutions.length };
   }
 
   static async insert(
-    submissionData: TablesInsert<typeof Submission.TABLE_NAME>,
-  ): Promise<Submission> {
+    solutionData: TablesInsert<typeof Solution.TABLE_NAME>,
+  ): Promise<Solution> {
     const { data, error } = await supabase
-      .from(Submission.TABLE_NAME)
-      .insert(submissionData)
+      .from(Solution.TABLE_NAME)
+      .insert(solutionData)
       .select()
       .single();
     if (error) throw new Error(JSON.stringify(error));
 
-    return new Submission(data);
+    return new Solution(data);
   }
 }

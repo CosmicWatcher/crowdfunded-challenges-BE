@@ -1,4 +1,4 @@
-create table public.task_submissions (
+create table public.task_solutions (
     id uuid default gen_random_uuid(),
     task_id uuid references public.tasks on delete restrict,
     created_by uuid references public.users on delete set null,
@@ -12,4 +12,4 @@ create table public.task_submissions (
     primary key (id)
 );
 
-alter table public.task_submissions enable row level security;
+alter table public.task_solutions enable row level security;

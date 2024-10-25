@@ -3,6 +3,7 @@ import { NextFunction, Request, Response } from "express";
 import { SolanaKeypair } from "@/api/solanaKeypair/solanaKeypairModel";
 import { Task } from "@/api/task/taskModel";
 import { getUserJson } from "@/api/user/userController";
+import { GET_TASKS_LIMIT_PER_PAGE } from "@/common/configs/constants";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/auth.types";
 import { TaskResponse } from "@/common/types/response.types";
@@ -56,7 +57,7 @@ export async function getTaskList(
   res: Response,
   next: NextFunction,
 ) {
-  const RETURN_COUNT = 4;
+  const RETURN_COUNT = GET_TASKS_LIMIT_PER_PAGE;
   const page = req.query.page as unknown as number;
   const rangeStart = (page - 1) * RETURN_COUNT;
   const rangeEnd = rangeStart + RETURN_COUNT - 1;
