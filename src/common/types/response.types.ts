@@ -1,7 +1,7 @@
 import { TaskKind, TaskStatus } from "@/api/task/taskModel";
 
-export interface ResponseObject {
-  data: UserResponse | TaskResponse;
+export interface ResponseObject<T> {
+  data: T;
   pagination?: ResponsePagination;
 }
 
@@ -31,4 +31,16 @@ export interface TaskResponse {
   createdAt: string;
   editedAt: string | null;
   endedAt: string | null;
+}
+
+export interface SubmissionResponse {
+  id: string;
+  taskId: string | null;
+  createdBy: UserResponse | null;
+  details: string | null;
+  voteCount: number;
+  isWinner: boolean;
+  createdAt: string;
+  editedAt: string | null;
+  deletedAt: string | null;
 }
