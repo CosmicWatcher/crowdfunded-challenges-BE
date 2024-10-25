@@ -81,7 +81,7 @@ export async function getTaskList(
     });
     return handleServiceResponse(serviceResponse, res);
   } catch (err) {
-    const error = JSON.parse(err as string);
+    const error = JSON.parse(String(err).slice(7));
     if (error.code == "PGRST103") {
       const serviceResponse = ServiceResponse.failure(
         "Requested page is out of range",

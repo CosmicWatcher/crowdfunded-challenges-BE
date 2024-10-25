@@ -3,16 +3,16 @@ import { z } from "zod";
 
 import { ResponseObject } from "@/common/types/response.types";
 
-export class ServiceResponse<T = ResponseObject | null> {
+export class ServiceResponse<T = null> {
   readonly success: boolean;
   readonly message: string;
-  readonly responseObject: T;
+  readonly responseObject: T extends null ? null : ResponseObject<T>;
   readonly statusCode: number;
 
   private constructor(
     success: boolean,
     message: string,
-    responseObject: T,
+    responseObject: T extends null ? null : ResponseObject<T>,
     statusCode: number,
   ) {
     this.success = success;
@@ -21,20 +21,20 @@ export class ServiceResponse<T = ResponseObject | null> {
     this.statusCode = statusCode;
   }
 
-  static success<T>(
+  static success<T = null>(
     message: string,
-    responseObject: T,
+    responseObject: T extends null ? null : ResponseObject<T>,
     statusCode: number = StatusCodes.OK,
   ) {
-    return new ServiceResponse(true, message, responseObject, statusCode);
+    return new ServiceResponse<T>(true, message, responseObject, statusCode);
   }
 
-  static failure<T>(
+  static failure<T = null>(
     message: string,
-    responseObject: T,
+    responseObject: T extends null ? null : ResponseObject<T>,
     statusCode: number = StatusCodes.BAD_REQUEST,
   ) {
-    return new ServiceResponse(false, message, responseObject, statusCode);
+    return new ServiceResponse<T>(false, message, responseObject, statusCode);
   }
 }
 

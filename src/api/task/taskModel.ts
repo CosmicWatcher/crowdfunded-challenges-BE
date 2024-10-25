@@ -41,7 +41,7 @@ export class Task {
   get kind() {
     return this.taskData.kind;
   }
-  get creatorId() {
+  get creatorBy() {
     return this.taskData.created_by;
   }
   get depositAddressId() {
@@ -49,16 +49,12 @@ export class Task {
   }
 
   async getCreator() {
-    if (!this.creatorId) {
-      return null;
-    }
-    return await User.getUserById(this.creatorId);
+    if (!this.creatorBy) return null;
+    return await User.getUserById(this.creatorBy);
   }
 
   async getDepositAddress() {
-    if (!this.depositAddressId) {
-      return null;
-    }
+    if (!this.depositAddressId) return null;
     return await SolanaKeypair.getKeypairById(this.depositAddressId);
   }
 

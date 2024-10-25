@@ -21,6 +21,7 @@ export function getPaginationJson(
     total_pages: totalPages,
     current_page: currentPage,
     prev_page: currentPage === 1 ? null : currentPage - 1,
-    next_page: currentPage === totalPages ? null : currentPage + 1,
+    next_page:
+      totalPages === 0 || currentPage === totalPages ? null : currentPage + 1,
   };
 }
