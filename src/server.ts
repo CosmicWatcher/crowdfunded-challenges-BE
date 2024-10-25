@@ -6,7 +6,7 @@ import { pino } from "pino";
 import { openAPIRouter } from "@/api-docs/openAPIRouter";
 import { codeWalletRouter } from "@/api/codeWallet/codeWalletRouter";
 import { healthCheckRouter } from "@/api/healthCheck/healthCheckRouter";
-import { submissionRouter } from "@/api/submission/submissionRouter";
+import { solutionRouter } from "@/api/solution/solutionRouter";
 import { taskRouter } from "@/api/task/taskRouter";
 import { env } from "@/common/configs/env";
 import errorHandler from "@/common/middleware/errorHandler";
@@ -32,7 +32,7 @@ app.use(requestLogger);
 // Routes
 app.use("/health-check", healthCheckRouter);
 app.use("/tasks", taskRouter);
-app.use("/submissions", submissionRouter);
+app.use("/solutions", solutionRouter);
 app.use("/codewallet", codeWalletRouter);
 
 // Swagger UI

@@ -1,38 +1,39 @@
 import { NextFunction, Request, Response } from "express";
 
-import { Submission } from "@/api/submission/submissionModel";
+import { Solution } from "@/api/solution/solutionModel";
 import { getUserJson } from "@/api/user/userController";
+import { GET_SOLUTIONS_LIMIT_PER_PAGE } from "@/common/configs/constants";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/auth.types";
-import { SubmissionResponse } from "@/common/types/response.types";
+import { SolutionResponse } from "@/common/types/response.types";
 import {
   getPaginationJson,
   handleServiceResponse,
 } from "@/common/utils/helpers";
 
-export async function getSubmissionJson(
-  submission: Submission,
-): Promise<SubmissionResponse> {
-  const creator = await submission.getCreator();
+export async function getSolutionJson(
+  solution: Solution,
+): Promise<SolutionResponse> {
+  const creator = await solution.getCreator();
   return {
-    id: submission.id,
-    taskId: submission.taskId,
+    id: solution.id,
+    taskId: solution.taskId,
     createdBy: creator ? getUserJson(creator) : null,
-    details: submission.details,
-    voteCount: submission.voteCount,
-    isWinner: submission.isWinner,
-    createdAt: submission.createdAt,
-    editedAt: submission.editedAt,
-    deletedAt: submission.deletedAt,
+    details: solution.details,
+    voteCount: solution.voteCount,
+    isWinner: solution.isWinner,
+    createdAt: solution.createdAt,
+    editedAt: solution.editedAt,
+    deletedAt: solution.deletedAt,
   };
 }
 
-export async function getSubmissionList(
+export async function getSolutionList(
   req: Request,
   res: Response,
   next: NextFunction,
 ) {
-  const RETURN_COUNT = 4;
+  const RETURN_COUNT = GET_SOLUTIONS_LIMIT_PER_PAGE;
   const page = req.query.page as unknown as number;
   const rangeStart = (page - 1) * RETURN_COUNT;
   const rangeEnd = rangeStart + RETURN_COUNT - 1;
@@ -40,21 +41,20 @@ export async function getSubmissionList(
   //   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   try {
-    const { submissions, totalRecords } =
-      await Submission.getSubmissionsByTaskId(
-        req.params.id,
-        rangeStart,
-        rangeEnd,
-        false,
-      );
+    const { solutions, totalRecords } = await Solution.getSolutionsByTaskId(
+      req.params.id,
+      rangeStart,
+      rangeEnd,
+      false,
+    );
     const pagination = getPaginationJson(totalRecords, page, RETURN_COUNT);
-    const returnData: Awaited<ReturnType<typeof getSubmissionJson>>[] = [];
-    for (const item of submissions) {
-      returnData.push(await getSubmissionJson(item));
+    const returnData: Awaited<ReturnType<typeof getSolutionJson>>[] = [];
+    for (const item of solutions) {
+      returnData.push(await getSolutionJson(item));
     }
 
-    const serviceResponse = ServiceResponse.success<SubmissionResponse[]>(
-      "Submissions Found",
+    const serviceResponse = ServiceResponse.success<SolutionResponse[]>(
+      "Solutions Found",
       {
         data: returnData,
         pagination,
@@ -73,7 +73,7 @@ export async function getSubmissionList(
   }
 }
 
-export async function createSubmission(
+export async function createSolution(
   req: Request,
   res: Response,
   next: NextFunction,
@@ -83,15 +83,15 @@ export async function createSubmission(
   //   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   try {
-    const submission = await Submission.insert({
+    const solution = await Solution.insert({
       created_by: authUser.id,
       task_id: req.body.taskId,
       details: req.body.description,
     });
 
-    const serviceResponse = ServiceResponse.success<SubmissionResponse>(
-      "Submission Created",
-      { data: await getSubmissionJson(submission) },
+    const serviceResponse = ServiceResponse.success<SolutionResponse>(
+      "Solution Created",
+      { data: await getSolutionJson(solution) },
     );
     return handleServiceResponse(serviceResponse, res);
   } catch (err) {
