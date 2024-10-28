@@ -43,12 +43,12 @@ export class SolutionVotes {
       .from(SolutionVotes.TABLE_NAME)
       .select("vote_count.sum()")
       .eq("solution_id", solutionId)
+      .returns<{ sum: number | null }[]>()
       .single();
 
     if (error) throw new Error(JSON.stringify(error));
-    if (!data) return 0;
 
-    return data;
+    return data.sum ?? 0;
   }
 
   static async insert(
