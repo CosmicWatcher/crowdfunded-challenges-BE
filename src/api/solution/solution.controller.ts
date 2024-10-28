@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 
-import { Solution } from "@/api/solution/solutionModel";
-import { getUserJson } from "@/api/user/userController";
+import { Solution } from "@/api/solution/solution.model";
+import { getUserJson } from "@/api/user/userc.ontroller";
 import { GET_SOLUTIONS_LIMIT_PER_PAGE } from "@/common/configs/constants";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/auth.types";
@@ -20,7 +20,7 @@ export async function getSolutionJson(
     taskId: solution.taskId,
     createdBy: creator ? getUserJson(creator) : null,
     details: solution.details,
-    voteCount: solution.voteCount,
+    voteCount: 69,
     isWinner: solution.isWinner,
     createdAt: solution.createdAt,
     editedAt: solution.editedAt,

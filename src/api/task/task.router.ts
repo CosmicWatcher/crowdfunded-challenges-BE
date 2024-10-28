@@ -5,8 +5,8 @@ import {
   createTask,
   getTaskById,
   getTaskList,
-} from "@/api/task/taskController";
-import { TaskKind } from "@/api/task/taskModel";
+} from "@/api/task/task.controller";
+import { TaskKind } from "@/api/task/task.model";
 import { FORM_LIMITS } from "@/common/configs/constants";
 import {
   commonValidations,
