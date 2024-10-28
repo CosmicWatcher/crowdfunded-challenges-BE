@@ -4,7 +4,7 @@ import { Tables, TablesInsert } from "@/common/types/database.types";
 import { supabase } from "@/common/utils/supabase";
 
 export class Solution {
-  static readonly TABLE_NAME = "task_submissions" as const;
+  static readonly TABLE_NAME = "solutions" as const;
 
   constructor(private solutionData: Tables<typeof Solution.TABLE_NAME>) {}
 
@@ -19,9 +19,6 @@ export class Solution {
   }
   get details() {
     return this.solutionData.details;
-  }
-  get voteCount() {
-    return this.solutionData.vote_count;
   }
   get isWinner() {
     return this.solutionData.is_winner;

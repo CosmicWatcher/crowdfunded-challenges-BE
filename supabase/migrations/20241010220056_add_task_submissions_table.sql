@@ -1,9 +1,9 @@
-create table public.task_solutions (
+create table public.solutions (
     id uuid default gen_random_uuid(),
     task_id uuid references public.tasks on delete restrict,
     created_by uuid references public.users on delete set null,
     details text,
-    vote_count smallint not null default 0,
+    -- vote_count smallint not null default 0,
     is_winner boolean not null default false,
     created_at timestamptz not null default CURRENT_TIMESTAMP,
     edited_at timestamptz,
@@ -12,4 +12,4 @@ create table public.task_solutions (
     primary key (id)
 );
 
-alter table public.task_solutions enable row level security;
+alter table public.solutions enable row level security;

@@ -1,0 +1,1 @@
+alter table public.tasks add column deposit_address uuid references public.task_solana_keypairs on delete restrict;
