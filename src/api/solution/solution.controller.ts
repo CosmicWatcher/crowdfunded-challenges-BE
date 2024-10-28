@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 
 import { Solution } from "@/api/solution/solution.model";
+import { SolutionVotes } from "@/api/solutionVotes/solutionVotes.model";
 import { getUserJson } from "@/api/user/userc.ontroller";
 import { GET_SOLUTIONS_LIMIT_PER_PAGE } from "@/common/configs/constants";
 import { ServiceResponse } from "@/common/models/serviceResponse";
@@ -15,12 +16,14 @@ export async function getSolutionJson(
   solution: Solution,
 ): Promise<SolutionResponse> {
   const creator = await solution.getCreator();
+  const totalVotes = await SolutionVotes.totalVotesBySolutionId(solution.id);
+  console.log(totalVotes);
   return {
     id: solution.id,
     taskId: solution.taskId,
     createdBy: creator ? getUserJson(creator) : null,
     details: solution.details,
-    voteCount: 69,
+    voteCount: totalVotes,
     isWinner: solution.isWinner,
     createdAt: solution.createdAt,
     editedAt: solution.editedAt,
