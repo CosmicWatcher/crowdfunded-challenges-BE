@@ -17,7 +17,7 @@ export async function getSolutionJson(
 ): Promise<SolutionResponse> {
   const creator = await solution.getCreator();
   const totalVotes = await SolutionVotes.totalVotesBySolutionId(solution.id);
-  console.log(totalVotes);
+
   return {
     id: solution.id,
     taskId: solution.taskId,
