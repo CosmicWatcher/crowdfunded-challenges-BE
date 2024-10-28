@@ -4,7 +4,7 @@ import { z } from "zod";
 import {
   createSolution,
   getSolutionList,
-} from "@/api/solution/solutionController";
+} from "@/api/solution/solution.controller";
 import { FORM_LIMITS } from "@/common/configs/constants";
 import {
   commonValidations,

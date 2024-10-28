@@ -1,5 +1,5 @@
-import { Task } from "@/api/task/taskModel";
-import { User } from "@/api/user/userModel";
+import { Task } from "@/api/task/task.model";
+import { User } from "@/api/user/user.model";
 import { Tables, TablesInsert } from "@/common/types/database.types";
 import { supabase } from "@/common/utils/supabase";
 

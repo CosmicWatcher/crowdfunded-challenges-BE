@@ -1,6 +1,6 @@
 import { Keypair } from "@solana/web3.js";
 
-import { Task } from "@/api/task/taskModel";
+import { Task } from "@/api/task/task.model";
 import { Tables } from "@/common/types/database.types";
 import { supabase } from "@/common/utils/supabase";
 

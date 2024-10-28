@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 
-import { SolanaKeypair } from "@/api/solanaKeypair/solanaKeypairModel";
-import { Task } from "@/api/task/taskModel";
-import { getUserJson } from "@/api/user/userController";
+import { SolanaKeypair } from "@/api/solanaKeypair/solanaKeypair.model";
+import { Task } from "@/api/task/task.model";
+import { getUserJson } from "@/api/user/userc.ontroller";
 import { GET_TASKS_LIMIT_PER_PAGE } from "@/common/configs/constants";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/auth.types";

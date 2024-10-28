@@ -1,5 +1,5 @@
-import { SolanaKeypair } from "@/api/solanaKeypair/solanaKeypairModel";
-import { User } from "@/api/user/userModel";
+import { SolanaKeypair } from "@/api/solanaKeypair/solanaKeypair.model";
+import { User } from "@/api/user/user.model";
 import { Tables, TablesInsert } from "@/common/types/database.types";
 import { supabase } from "@/common/utils/supabase";
 

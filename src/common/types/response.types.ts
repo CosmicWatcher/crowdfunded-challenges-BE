@@ -1,4 +1,4 @@
-import { TaskKind, TaskStatus } from "@/api/task/taskModel";
+import { TaskKind, TaskStatus } from "@/api/task/task.model";
 
 export interface ResponseObject<T> {
   data: T;
