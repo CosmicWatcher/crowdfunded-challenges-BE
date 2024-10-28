@@ -34,6 +34,93 @@ export interface Database {
   };
   public: {
     Tables: {
+      solution_votes: {
+        Row: {
+          id: string;
+          solution_id: string | null;
+          vote_count: number;
+          voted_at: string;
+          voted_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          solution_id?: string | null;
+          vote_count?: number;
+          voted_at?: string;
+          voted_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          solution_id?: string | null;
+          vote_count?: number;
+          voted_at?: string;
+          voted_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "solution_votes_solution_id_fkey";
+            columns: ["solution_id"];
+            isOneToOne: false;
+            referencedRelation: "solutions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "solution_votes_voted_by_fkey";
+            columns: ["voted_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      solutions: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          deleted_at: string | null;
+          details: string | null;
+          edited_at: string | null;
+          id: string;
+          is_winner: boolean;
+          task_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          deleted_at?: string | null;
+          details?: string | null;
+          edited_at?: string | null;
+          id?: string;
+          is_winner?: boolean;
+          task_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          deleted_at?: string | null;
+          details?: string | null;
+          edited_at?: string | null;
+          id?: string;
+          is_winner?: boolean;
+          task_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "solutions_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "solutions_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       task_funding: {
         Row: {
           amount_fiat: number | null;
@@ -108,96 +195,6 @@ export interface Database {
           public_key?: string;
         };
         Relationships: [];
-      };
-      task_submission_votes: {
-        Row: {
-          id: string;
-          task_submission_id: string | null;
-          vote_count: number;
-          voted_at: string;
-          voted_by: string | null;
-        };
-        Insert: {
-          id?: string;
-          task_submission_id?: string | null;
-          vote_count?: number;
-          voted_at?: string;
-          voted_by?: string | null;
-        };
-        Update: {
-          id?: string;
-          task_submission_id?: string | null;
-          vote_count?: number;
-          voted_at?: string;
-          voted_by?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "task_submission_votes_task_submission_id_fkey";
-            columns: ["task_submission_id"];
-            isOneToOne: false;
-            referencedRelation: "task_submissions";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "task_submission_votes_voted_by_fkey";
-            columns: ["voted_by"];
-            isOneToOne: false;
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      task_submissions: {
-        Row: {
-          created_at: string;
-          created_by: string | null;
-          deleted_at: string | null;
-          details: string | null;
-          edited_at: string | null;
-          id: string;
-          is_winner: boolean;
-          task_id: string | null;
-          vote_count: number;
-        };
-        Insert: {
-          created_at?: string;
-          created_by?: string | null;
-          deleted_at?: string | null;
-          details?: string | null;
-          edited_at?: string | null;
-          id?: string;
-          is_winner?: boolean;
-          task_id?: string | null;
-          vote_count?: number;
-        };
-        Update: {
-          created_at?: string;
-          created_by?: string | null;
-          deleted_at?: string | null;
-          details?: string | null;
-          edited_at?: string | null;
-          id?: string;
-          is_winner?: boolean;
-          task_id?: string | null;
-          vote_count?: number;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "task_submissions_created_by_fkey";
-            columns: ["created_by"];
-            isOneToOne: false;
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "task_submissions_task_id_fkey";
-            columns: ["task_id"];
-            isOneToOne: false;
-            referencedRelation: "tasks";
-            referencedColumns: ["id"];
-          },
-        ];
       };
       tasks: {
         Row: {
@@ -290,157 +287,7 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-      akeys: {
-        Args: {
-          "": unknown;
-        };
-        Returns: string[];
-      };
-      avals: {
-        Args: {
-          "": unknown;
-        };
-        Returns: string[];
-      };
-      each: {
-        Args: {
-          hs: unknown;
-        };
-        Returns: Record<string, unknown>[];
-      };
-      ghstore_compress: {
-        Args: {
-          "": unknown;
-        };
-        Returns: unknown;
-      };
-      ghstore_decompress: {
-        Args: {
-          "": unknown;
-        };
-        Returns: unknown;
-      };
-      ghstore_in: {
-        Args: {
-          "": unknown;
-        };
-        Returns: unknown;
-      };
-      ghstore_options: {
-        Args: {
-          "": unknown;
-        };
-        Returns: undefined;
-      };
-      ghstore_out: {
-        Args: {
-          "": unknown;
-        };
-        Returns: unknown;
-      };
-      hstore:
-        | {
-            Args: {
-              "": string[];
-            };
-            Returns: unknown;
-          }
-        | {
-            Args: {
-              "": Record<string, unknown>;
-            };
-            Returns: unknown;
-          };
-      hstore_hash: {
-        Args: {
-          "": unknown;
-        };
-        Returns: number;
-      };
-      hstore_in: {
-        Args: {
-          "": unknown;
-        };
-        Returns: unknown;
-      };
-      hstore_out: {
-        Args: {
-          "": unknown;
-        };
-        Returns: unknown;
-      };
-      hstore_recv: {
-        Args: {
-          "": unknown;
-        };
-        Returns: unknown;
-      };
-      hstore_send: {
-        Args: {
-          "": unknown;
-        };
-        Returns: string;
-      };
-      hstore_subscript_handler: {
-        Args: {
-          "": unknown;
-        };
-        Returns: unknown;
-      };
-      hstore_to_array: {
-        Args: {
-          "": unknown;
-        };
-        Returns: string[];
-      };
-      hstore_to_json: {
-        Args: {
-          "": unknown;
-        };
-        Returns: Json;
-      };
-      hstore_to_json_loose: {
-        Args: {
-          "": unknown;
-        };
-        Returns: Json;
-      };
-      hstore_to_jsonb: {
-        Args: {
-          "": unknown;
-        };
-        Returns: Json;
-      };
-      hstore_to_jsonb_loose: {
-        Args: {
-          "": unknown;
-        };
-        Returns: Json;
-      };
-      hstore_to_matrix: {
-        Args: {
-          "": unknown;
-        };
-        Returns: string[];
-      };
-      hstore_version_diag: {
-        Args: {
-          "": unknown;
-        };
-        Returns: number;
-      };
-      skeys: {
-        Args: {
-          "": unknown;
-        };
-        Returns: string[];
-      };
-      svals: {
-        Args: {
-          "": unknown;
-        };
-        Returns: string[];
-      };
+      [_ in never]: never;
     };
     Enums: {
       task_status: "active" | "successful" | "failed" | "deleted";
