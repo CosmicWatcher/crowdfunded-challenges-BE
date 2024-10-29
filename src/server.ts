@@ -7,6 +7,7 @@ import { openAPIRouter } from "@/api-docs/openAPIRouter";
 import { codeWalletRouter } from "@/api/codeWallet/codeWallet.router";
 import { healthCheckRouter } from "@/api/healthCheck/healthCheck.router";
 import { solutionRouter } from "@/api/solution/solution.router";
+import { solutionVotesRouter } from "@/api/solutionVotes/solutionVotes.router";
 import { taskRouter } from "@/api/task/task.router";
 import { env } from "@/common/configs/env";
 import errorHandler from "@/common/middleware/errorHandler";
@@ -33,6 +34,7 @@ app.use(requestLogger);
 app.use("/health-check", healthCheckRouter);
 app.use("/tasks", taskRouter);
 app.use("/solutions", solutionRouter);
+app.use("/solution-votes", solutionVotesRouter);
 app.use("/codewallet", codeWalletRouter);
 
 // Swagger UI

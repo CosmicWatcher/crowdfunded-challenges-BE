@@ -1,4 +1,8 @@
+import { User as AuthUser } from "@supabase/supabase-js";
+import { Request } from "express";
+
 import { Tables } from "@/common/types/database.types";
+import { getJwtToken } from "@/common/utils/helpers";
 import { supabase } from "@/common/utils/supabase";
 
 export class User {
@@ -30,9 +34,19 @@ export class User {
     return new User(data);
   }
 
-  async getAuthUserData() {
+  async getAuthUserData(): Promise<AuthUser> {
     const { data, error } = await supabase.auth.admin.getUserById(this.id);
     if (error) throw new Error(JSON.stringify(error));
-    return data;
+    return data.user;
+  }
+
+  static async getIdFromJwt(req: Request): Promise<User["id"] | null> {
+    const jwt = getJwtToken(req);
+    if (!jwt) return null;
+
+    const { data, error } = await supabase.auth.getUser(jwt);
+    if (error) throw new Error(JSON.stringify(error));
+
+    return data.user.id;
   }
 }

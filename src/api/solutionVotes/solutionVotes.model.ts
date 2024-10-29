@@ -36,9 +36,7 @@ export class SolutionVotes {
     return await Solution.getSolutionById(this.solutionId);
   }
 
-  static async totalVotesBySolutionId(
-    solutionId: Solution["id"],
-  ): Promise<number> {
+  static async totalSolutionVotes(solutionId: Solution["id"]): Promise<number> {
     const { data, error } = await supabase
       .from(SolutionVotes.TABLE_NAME)
       .select("vote_count.sum()")
@@ -47,7 +45,22 @@ export class SolutionVotes {
       .single();
 
     if (error) throw new Error(JSON.stringify(error));
+    return data.sum ?? 0;
+  }
 
+  static async totalSolutionVotesByUser(
+    solutionId: Solution["id"],
+    userId: User["id"],
+  ): Promise<number> {
+    const { data, error } = await supabase
+      .from(SolutionVotes.TABLE_NAME)
+      .select("vote_count.sum()")
+      .eq("solution_id", solutionId)
+      .eq("voted_by", userId)
+      .returns<{ sum: number | null }[]>()
+      .single();
+
+    if (error) throw new Error(JSON.stringify(error));
     return data.sum ?? 0;
   }
 
@@ -59,8 +72,8 @@ export class SolutionVotes {
       .insert(solutionVotesData)
       .select()
       .single();
-    if (error) throw new Error(JSON.stringify(error));
 
+    if (error) throw new Error(JSON.stringify(error));
     return new SolutionVotes(data);
   }
 }
