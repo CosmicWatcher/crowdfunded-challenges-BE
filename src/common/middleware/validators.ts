@@ -4,7 +4,7 @@ import { ZodError, ZodSchema, z } from "zod";
 
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/auth.types";
-import { handleServiceResponse } from "@/common/utils/helpers";
+import { getJwtToken, handleServiceResponse } from "@/common/utils/helpers";
 import { supabase } from "@/common/utils/supabase";
 
 export const commonValidations = {
@@ -47,10 +47,8 @@ export const validateRequest =
 
 export const validateUser =
   () => async (req: Request, res: Response, next: NextFunction) => {
-    let jwt = req.headers.authorization;
-    if (jwt?.startsWith("Bearer ")) {
-      jwt = jwt.slice(7);
-    } else {
+    const jwt = getJwtToken(req);
+    if (!jwt) {
       const serviceResponse = ServiceResponse.failure(
         "A valid bearer JWT token must be present in the authorization header",
         null,
@@ -59,19 +57,18 @@ export const validateUser =
       return handleServiceResponse(serviceResponse, res);
     }
 
-    const authRes = await supabase.auth.getUser(jwt);
-    if (authRes.error) {
+    const { data, error } = await supabase.auth.getUser(jwt);
+    if (error) {
       const serviceResponse = ServiceResponse.failure(
-        authRes.error.message,
+        error.message,
         null,
-        authRes.error.status !== undefined &&
-          authRes.error.status in StatusCodes
-          ? authRes.error.status
+        error.status !== undefined && error.status in StatusCodes
+          ? error.status
           : StatusCodes.INTERNAL_SERVER_ERROR,
       );
       return handleServiceResponse(serviceResponse, res);
     }
-    (req as AuthenticatedRequest).authUser = authRes.data.user;
+    (req as AuthenticatedRequest).authUser = data.user;
 
     next();
   };

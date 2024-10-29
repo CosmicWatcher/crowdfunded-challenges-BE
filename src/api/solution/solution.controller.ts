@@ -1,8 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 
 import { Solution } from "@/api/solution/solution.model";
-import { SolutionVotes } from "@/api/solutionVotes/solutionVotes.model";
-import { getUserJson } from "@/api/user/userc.ontroller";
+import { getVoteDetailsJson } from "@/api/solutionVotes/solutionVotes.controller";
+import { getUserJson } from "@/api/user/user.controller";
+import { User } from "@/api/user/user.model";
 import { GET_SOLUTIONS_LIMIT_PER_PAGE } from "@/common/configs/constants";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/auth.types";
@@ -14,16 +15,17 @@ import {
 
 export async function getSolutionJson(
   solution: Solution,
+  userId?: User["id"],
 ): Promise<SolutionResponse> {
   const creator = await solution.getCreator();
-  const totalVotes = await SolutionVotes.totalVotesBySolutionId(solution.id);
+  const voteDetails = await getVoteDetailsJson(solution.id, userId);
 
   return {
     id: solution.id,
     taskId: solution.taskId,
     createdBy: creator ? getUserJson(creator) : null,
     details: solution.details,
-    voteCount: totalVotes,
+    voteDetails,
     isWinner: solution.isWinner,
     createdAt: solution.createdAt,
     editedAt: solution.editedAt,
@@ -43,6 +45,13 @@ export async function getSolutionList(
 
   //   await new Promise((resolve) => setTimeout(resolve, 1000));
 
+  let userId: User["id"] | null = null;
+  try {
+    userId = await User.getIdFromJwt(req);
+  } catch (err) {
+    res.locals.err = err;
+  }
+
   try {
     const { solutions, totalRecords } = await Solution.getSolutionsByTaskId(
       req.params.id,
@@ -53,7 +62,7 @@ export async function getSolutionList(
     const pagination = getPaginationJson(totalRecords, page, RETURN_COUNT);
     const returnData: Awaited<ReturnType<typeof getSolutionJson>>[] = [];
     for (const item of solutions) {
-      returnData.push(await getSolutionJson(item));
+      returnData.push(await getSolutionJson(item, userId ?? undefined));
     }
 
     const serviceResponse = ServiceResponse.success<SolutionResponse[]>(
@@ -83,7 +92,7 @@ export async function createSolution(
 ) {
   const authUser = (req as AuthenticatedRequest).authUser;
 
-  //   await new Promise((resolve) => setTimeout(resolve, 1000));
+  // await new Promise((resolve) => setTimeout(resolve, 2000));
 
   try {
     const solution = await Solution.insert({
@@ -94,7 +103,7 @@ export async function createSolution(
 
     const serviceResponse = ServiceResponse.success<SolutionResponse>(
       "Solution Created",
-      { data: await getSolutionJson(solution) },
+      { data: await getSolutionJson(solution, authUser.id) },
     );
     return handleServiceResponse(serviceResponse, res);
   } catch (err) {

@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { ResponsePagination } from "@/common/types/response.types";
@@ -24,4 +24,10 @@ export function getPaginationJson(
     next_page:
       totalPages === 0 || currentPage === totalPages ? null : currentPage + 1,
   };
+}
+
+export function getJwtToken(req: Request): string | null {
+  const jwt = req.headers.authorization;
+  if (jwt?.startsWith("Bearer ")) return jwt.slice(7);
+  else return null;
 }

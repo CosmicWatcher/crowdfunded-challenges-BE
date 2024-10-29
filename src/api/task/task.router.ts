@@ -12,7 +12,7 @@ import {
   commonValidations,
   validateRequest,
   validateUser,
-} from "@/common/utils/validators";
+} from "@/common/middleware/validators";
 
 export const taskRouter: Router = express.Router();
 
