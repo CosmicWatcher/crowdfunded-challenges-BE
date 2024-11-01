@@ -1,6 +1,10 @@
 import { SolanaKeypair } from "@/api/solanaKeypair/solanaKeypair.model";
 import { User } from "@/api/user/user.model";
-import { Tables, TablesInsert } from "@/common/types/database.types";
+import {
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+} from "@/common/types/database.types";
 import { supabase } from "@/common/utils/supabase";
 
 export type TaskStatus = Tables<typeof Task.TABLE_NAME>["status"];
@@ -48,17 +52,17 @@ export class Task {
     return this.taskData.deposit_address;
   }
 
-  async getCreator() {
+  async getCreator(): Promise<User | null> {
     if (!this.creatorBy) return null;
     return await User.getUserById(this.creatorBy);
   }
 
-  async getDepositAddress() {
+  async getDepositAddress(): Promise<SolanaKeypair | null> {
     if (!this.depositAddressId) return null;
     return await SolanaKeypair.getKeypairById(this.depositAddressId);
   }
 
-  static async getTaskById(id: string) {
+  static async getTaskById(id: string): Promise<Task | null> {
     const status: TaskStatus = "deleted";
 
     const { data, error } = await supabase
@@ -80,7 +84,7 @@ export class Task {
     rangeStart: number,
     rangeEnd: number,
     ascending = false,
-  ) {
+  ): Promise<{ tasks: Task[]; totalRecords: number }> {
     const status: TaskStatus = "deleted";
 
     const { data, error, count } = await supabase
@@ -100,8 +104,22 @@ export class Task {
     return { tasks, totalRecords: count ?? tasks.length };
   }
 
-  static async insert(taskData: TablesInsert<typeof Task.TABLE_NAME>) {
+  static async insert(
+    taskData: TablesInsert<typeof Task.TABLE_NAME>,
+  ): Promise<void> {
     const { error } = await supabase.from(Task.TABLE_NAME).insert(taskData);
     if (error) throw new Error(JSON.stringify(error));
+  }
+
+  async update(taskData: TablesUpdate<typeof Task.TABLE_NAME>): Promise<Task> {
+    const { data, error } = await supabase
+      .from(Task.TABLE_NAME)
+      .update(taskData)
+      .eq("id", this.id)
+      .select()
+      .single();
+    if (error) throw new Error(JSON.stringify(error));
+    this.taskData = data;
+    return this;
   }
 }

@@ -20,10 +20,7 @@ const getSolutionVoteDetailsSchema = z.object({
 const recordSolutionVoteSchema = z.object({
   body: z.object({
     solutionId: commonValidations.id,
-    amount: z
-      .number()
-      .min(1, "Minimum vote is 1")
-      .max(69, `You only have ${69} votes for this task`),
+    amount: z.number().min(1, "Minimum vote is 1"),
   }),
 });
 

@@ -2,13 +2,14 @@ import { NextFunction, Request, Response } from "express";
 
 import { Solution } from "@/api/solution/solution.model";
 import { SolutionVotes } from "@/api/solutionVotes/solutionVotes.model";
+import { TaskFunds } from "@/api/taskFunds/taskFunds.model";
 import { User } from "@/api/user/user.model";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/auth.types";
 import { SolutionVoteDetailsResponse } from "@/common/types/response.types";
 import { handleServiceResponse } from "@/common/utils/helpers";
 
-export async function getVoteDetailsJson(
+export async function getVoteDetails(
   solutionId: Solution["id"],
   userId?: User["id"],
 ): Promise<SolutionVoteDetailsResponse> {
@@ -16,11 +17,17 @@ export async function getVoteDetailsJson(
   const totalVotesByUser = userId
     ? await SolutionVotes.totalSolutionVotesByUser(solutionId, userId)
     : null;
+  const solution = await Solution.getSolutionById(solutionId);
+  const taskId = solution?.taskId;
+  const userVotingRights =
+    taskId && userId
+      ? await TaskFunds.totalUserVotingRights(userId, taskId)
+      : null;
 
   return {
     totalVotes,
     totalVotesByUser,
-    userVotingRights: userId ? 69 : null,
+    userVotingRights,
   };
 }
 
@@ -36,7 +43,7 @@ export async function getSolutionVoteDetails(
       ServiceResponse.success<SolutionVoteDetailsResponse>(
         "Found Solution Vote Details",
         {
-          data: await getVoteDetailsJson(req.params.id, authUser.id),
+          data: await getVoteDetails(req.params.id, authUser.id),
         },
       );
     return handleServiceResponse(serviceResponse, res);
@@ -51,24 +58,35 @@ export async function recordSolutionVote(
   next: NextFunction,
 ) {
   const authUser = (req as AuthenticatedRequest).authUser;
+  const solutionId = req.body.solutionId as Solution["id"];
+  const voteCount = req.body.amount;
 
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  // await new Promise((resolve) => setTimeout(resolve, 2000));
 
   try {
+    const voteDetails = await getVoteDetails(solutionId, authUser.id);
+    if (
+      !voteDetails.userVotingRights ||
+      voteDetails.userVotingRights < voteCount
+    ) {
+      const serviceResponse = ServiceResponse.failure(
+        "Insufficient voting rights",
+        null,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
+
     await SolutionVotes.insert({
       voted_by: authUser.id,
-      solution_id: req.body.solutionId,
-      vote_count: req.body.amount,
+      solution_id: solutionId,
+      vote_count: voteCount,
     });
 
     const serviceResponse =
       ServiceResponse.success<SolutionVoteDetailsResponse>(
         "Solution Vote Recorded",
         {
-          data: await getVoteDetailsJson(
-            req.body.solutionId as Solution["id"],
-            authUser.id,
-          ),
+          data: voteDetails,
         },
       );
     return handleServiceResponse(serviceResponse, res);

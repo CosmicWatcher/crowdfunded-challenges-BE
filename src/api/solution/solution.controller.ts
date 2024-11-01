@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 
 import { Solution } from "@/api/solution/solution.model";
-import { getVoteDetailsJson } from "@/api/solutionVotes/solutionVotes.controller";
+import { getVoteDetails } from "@/api/solutionVotes/solutionVotes.controller";
 import { getUserJson } from "@/api/user/user.controller";
 import { User } from "@/api/user/user.model";
 import { GET_SOLUTIONS_LIMIT_PER_PAGE } from "@/common/configs/constants";
@@ -18,7 +18,7 @@ export async function getSolutionJson(
   userId?: User["id"],
 ): Promise<SolutionResponse> {
   const creator = await solution.getCreator();
-  const voteDetails = await getVoteDetailsJson(solution.id, userId);
+  const voteDetails = await getVoteDetails(solution.id, userId);
 
   return {
     id: solution.id,

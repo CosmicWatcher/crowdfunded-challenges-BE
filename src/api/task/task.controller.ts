@@ -2,7 +2,10 @@ import { NextFunction, Request, Response } from "express";
 
 import { SolanaKeypair } from "@/api/solanaKeypair/solanaKeypair.model";
 import { Task } from "@/api/task/task.model";
+import { getFundingDetails } from "@/api/taskFunds/taskFunds.controller";
+import { TaskFunds } from "@/api/taskFunds/taskFunds.model";
 import { getUserJson } from "@/api/user/user.controller";
+import { User } from "@/api/user/user.model";
 import { GET_TASKS_LIMIT_PER_PAGE } from "@/common/configs/constants";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/auth.types";
@@ -12,9 +15,13 @@ import {
   handleServiceResponse,
 } from "@/common/utils/helpers";
 
-export async function getTaskJson(task: Task): Promise<TaskResponse> {
+export async function getTaskJson(
+  task: Task,
+  userId?: User["id"],
+): Promise<TaskResponse> {
   const depositAddress = await task.getDepositAddress();
   const creator = await task.getCreator();
+
   return {
     id: task.id,
     createdBy: creator ? getUserJson(creator) : null,
@@ -24,7 +31,7 @@ export async function getTaskJson(task: Task): Promise<TaskResponse> {
     maxWinners: task.maxWinners,
     status: task.status,
     depositAddress: depositAddress ? depositAddress.publicKey : null,
-    fundsRaised: 420,
+    fundsRaised: await getFundingDetails(task.id, userId),
     createdAt: task.createdAt,
     editedAt: task.editedAt,
     endedAt: task.endedAt,
@@ -37,10 +44,22 @@ export async function getTaskById(
   next: NextFunction,
 ) {
   try {
-    const task = await Task.getTaskById(req.params.id);
+    let task: Task | null = null;
+
+    task = await Task.getTaskById(req.params.id);
     if (!task) {
       const serviceResponse = ServiceResponse.failure("Task not Found", null);
       return handleServiceResponse(serviceResponse, res);
+    }
+
+    if (!task.depositAddressId) {
+      try {
+        const keypair = await SolanaKeypair.getOrCreateKeypair();
+        task = await task.update({ deposit_address: keypair.id });
+      } catch (error) {
+        // just log the error because it's not critical
+        res.locals.err = error;
+      }
     }
 
     const serviceResponse = ServiceResponse.success("Task Found", {
