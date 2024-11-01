@@ -9,6 +9,7 @@ import { healthCheckRouter } from "@/api/healthCheck/healthCheck.router";
 import { solutionRouter } from "@/api/solution/solution.router";
 import { solutionVotesRouter } from "@/api/solutionVotes/solutionVotes.router";
 import { taskRouter } from "@/api/task/task.router";
+import { taskFundsRouter } from "@/api/taskFunds/taskFunds.router";
 import { env } from "@/common/configs/env";
 import errorHandler from "@/common/middleware/errorHandler";
 import rateLimiter from "@/common/middleware/rateLimiter";
@@ -35,6 +36,7 @@ app.use("/health-check", healthCheckRouter);
 app.use("/tasks", taskRouter);
 app.use("/solutions", solutionRouter);
 app.use("/solution-votes", solutionVotesRouter);
+app.use("/task-funds", taskFundsRouter);
 app.use("/codewallet", codeWalletRouter);
 
 // Swagger UI
