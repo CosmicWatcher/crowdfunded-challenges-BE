@@ -1,4 +1,5 @@
 import { Solution } from "@/api/solution/solution.model";
+import { Task } from "@/api/task/task.model";
 import { User } from "@/api/user/user.model";
 import { Tables, TablesInsert } from "@/common/types/database.types";
 import { supabase } from "@/common/utils/supabase";
@@ -56,6 +57,22 @@ export class SolutionVotes {
       .from(SolutionVotes.TABLE_NAME)
       .select("vote_count.sum()")
       .eq("solution_id", solutionId)
+      .eq("voted_by", userId)
+      .returns<{ sum: number | null }[]>()
+      .single();
+
+    if (error) throw new Error(JSON.stringify(error));
+    return data.sum ?? 0;
+  }
+
+  static async totalTaskVotesByUser(
+    taskId: Task["id"],
+    userId: User["id"],
+  ): Promise<number> {
+    const { data, error } = await supabase
+      .from("solution_votes_by_task_and_user")
+      .select(`vote_count.sum()`)
+      .eq("task_id", taskId)
       .eq("voted_by", userId)
       .returns<{ sum: number | null }[]>()
       .single();

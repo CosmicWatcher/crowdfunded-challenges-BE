@@ -3,7 +3,6 @@ import { NextFunction, Request, Response } from "express";
 import { SolanaKeypair } from "@/api/solanaKeypair/solanaKeypair.model";
 import { Task } from "@/api/task/task.model";
 import { getFundingDetails } from "@/api/taskFunds/taskFunds.controller";
-import { TaskFunds } from "@/api/taskFunds/taskFunds.model";
 import { getUserJson } from "@/api/user/user.controller";
 import { User } from "@/api/user/user.model";
 import { GET_TASKS_LIMIT_PER_PAGE } from "@/common/configs/constants";

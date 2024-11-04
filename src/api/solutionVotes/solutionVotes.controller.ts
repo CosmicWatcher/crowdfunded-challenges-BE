@@ -21,7 +21,7 @@ export async function getVoteDetails(
   const taskId = solution?.taskId;
   const userVotingRights =
     taskId && userId
-      ? await TaskFunds.totalUserVotingRights(userId, taskId)
+      ? await TaskFunds.getUserVotingRights(taskId, userId)
       : null;
 
   return {

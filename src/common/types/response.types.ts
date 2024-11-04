@@ -54,4 +54,5 @@ export interface SolutionVoteDetailsResponse {
 export interface TaskFundDetailsResponse {
   totalFunds: number;
   totalFundsByUser: number | null;
+  userVotingRights: number | null;
 }
