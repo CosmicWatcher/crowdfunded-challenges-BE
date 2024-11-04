@@ -1,8 +1,6 @@
 import { Kin } from "@code-wallet/currency";
 import { NextFunction, Request, Response } from "express";
 
-import { Solution } from "@/api/solution/solution.model";
-import { SolutionVotes } from "@/api/solutionVotes/solutionVotes.model";
 import { getTaskJson } from "@/api/task/task.controller";
 import { Task } from "@/api/task/task.model";
 import { TaskFunds } from "@/api/taskFunds/taskFunds.model";
@@ -19,14 +17,19 @@ export async function getFundingDetails(
   taskId: Task["id"],
   userId?: User["id"],
 ): Promise<TaskFundDetailsResponse> {
-  const totalFunds = await TaskFunds.totalKinByTask(taskId);
+  const totalFunds = (await TaskFunds.totalKinByTask(taskId)).toDecimal();
   const totalFundsByUser = userId
-    ? await TaskFunds.totalKinByUser(taskId, userId)
+    ? (await TaskFunds.totalKinByUser(taskId, userId)).toDecimal()
     : null;
+  const userVotingRights =
+    taskId && userId
+      ? await TaskFunds.getUserVotingRights(taskId, userId)
+      : null;
 
   return {
-    totalFunds: totalFunds.toDecimal(),
-    totalFundsByUser: totalFundsByUser ? totalFundsByUser.toDecimal() : null,
+    totalFunds,
+    totalFundsByUser,
+    userVotingRights,
   };
 }
 
@@ -86,7 +89,7 @@ export async function mockRecordContribution(
 
     const serviceResponse = ServiceResponse.success<TaskResponse>(
       "Fund Contribution Recorded",
-      { data: await getTaskJson(task) },
+      { data: await getTaskJson(task, authUser.id) },
     );
     return handleServiceResponse(serviceResponse, res);
   } catch (err) {
