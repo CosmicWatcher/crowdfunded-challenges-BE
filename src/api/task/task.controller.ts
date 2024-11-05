@@ -66,6 +66,13 @@ export async function getTaskById(
   res: Response,
   next: NextFunction,
 ) {
+  let userId: User["id"] | null = null;
+  try {
+    userId = await User.getIdFromJwt(req);
+  } catch (err) {
+    res.locals.err = err;
+  }
+
   try {
     let task: Task | null = null;
 
@@ -86,7 +93,7 @@ export async function getTaskById(
     }
 
     const serviceResponse = ServiceResponse.success("Task Found", {
-      data: await getTaskJson(task),
+      data: await getTaskJson(task, userId ?? undefined),
     });
     return handleServiceResponse(serviceResponse, res);
   } catch (e) {
@@ -103,6 +110,12 @@ export async function getTaskList(
   const page = req.query.page as unknown as number;
   const rangeStart = (page - 1) * RETURN_COUNT;
   const rangeEnd = rangeStart + RETURN_COUNT - 1;
+  let userId: User["id"] | null = null;
+  try {
+    userId = await User.getIdFromJwt(req);
+  } catch (err) {
+    res.locals.err = err;
+  }
 
   // await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -115,7 +128,7 @@ export async function getTaskList(
     const pagination = getPaginationJson(totalRecords, page, RETURN_COUNT);
     const returnData: Awaited<ReturnType<typeof getTaskJson>>[] = [];
     for (const item of tasks) {
-      returnData.push(await getTaskJson(item));
+      returnData.push(await getTaskJson(item, userId ?? undefined));
     }
 
     const serviceResponse = ServiceResponse.success("Tasks Found", {
