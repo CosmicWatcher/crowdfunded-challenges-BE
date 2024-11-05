@@ -284,7 +284,29 @@ export interface Database {
       };
     };
     Views: {
-      [_ in never]: never;
+      solution_votes_by_task_and_user: {
+        Row: {
+          task_id: string | null;
+          vote_count: number | null;
+          voted_by: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "solution_votes_voted_by_fkey";
+            columns: ["voted_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "solutions_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Functions: {
       [_ in never]: never;

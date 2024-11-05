@@ -6,6 +6,7 @@ import { supabase } from "@/common/utils/supabase";
 
 export class SolutionVotes {
   static readonly TABLE_NAME = "solution_votes" as const;
+  static readonly VIEW_NAME = "solution_votes_by_task_and_user" as const;
 
   constructor(
     private solutionVotesData: Tables<typeof SolutionVotes.TABLE_NAME>,
@@ -70,7 +71,7 @@ export class SolutionVotes {
     userId: User["id"],
   ): Promise<number> {
     const { data, error } = await supabase
-      .from("solution_votes_by_task_and_user")
+      .from(SolutionVotes.VIEW_NAME)
       .select(`vote_count.sum()`)
       .eq("task_id", taskId)
       .eq("voted_by", userId)
