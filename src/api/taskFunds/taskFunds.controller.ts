@@ -2,36 +2,11 @@ import { Kin } from "@code-wallet/currency";
 import { NextFunction, Request, Response } from "express";
 
 import { getTaskJson } from "@/api/task/task.controller";
-import { Task } from "@/api/task/task.model";
 import { TaskFunds } from "@/api/taskFunds/taskFunds.model";
-import { User } from "@/api/user/user.model";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/auth.types";
-import {
-  TaskFundDetailsResponse,
-  TaskResponse,
-} from "@/common/types/response.types";
+import { TaskResponse } from "@/common/types/response.types";
 import { handleServiceResponse } from "@/common/utils/helpers";
-
-export async function getFundingDetails(
-  taskId: Task["id"],
-  userId?: User["id"],
-): Promise<TaskFundDetailsResponse> {
-  const totalFunds = (await TaskFunds.totalKinByTask(taskId)).toDecimal();
-  const totalFundsByUser = userId
-    ? (await TaskFunds.totalKinByUser(taskId, userId)).toDecimal()
-    : null;
-  const userVotingRights =
-    taskId && userId
-      ? await TaskFunds.getUserVotingRights(taskId, userId)
-      : null;
-
-  return {
-    totalFunds,
-    totalFundsByUser,
-    userVotingRights,
-  };
-}
 
 // export async function get(req: Request, res: Response, next: NextFunction) {
 //   const authUser = (req as AuthenticatedRequest).authUser;

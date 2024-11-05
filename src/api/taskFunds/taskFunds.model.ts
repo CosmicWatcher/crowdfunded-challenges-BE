@@ -68,21 +68,12 @@ export class TaskFunds {
     return Kin.fromQuarks(BigInt(data.sum));
   }
 
-  private static async userBoughtVotingRights(
+  static async userBoughtVotingRights(
     taskId: Task["id"],
     userId: User["id"],
   ): Promise<number> {
     const totalKin = await TaskFunds.totalKinByUser(taskId, userId);
     return Math.floor(Number(totalKin.toQuarks() / TaskFunds.QUARKS_PER_VOTE));
-  }
-
-  static async getUserVotingRights(
-    taskId: Task["id"],
-    userId: User["id"],
-  ): Promise<number> {
-    const bought = await TaskFunds.userBoughtVotingRights(taskId, userId);
-    const used = await SolutionVotes.totalTaskVotesByUser(taskId, userId);
-    return bought - used;
   }
 
   static async insert(

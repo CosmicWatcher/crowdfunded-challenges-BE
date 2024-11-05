@@ -66,7 +66,7 @@ export class SolutionVotes {
     return data.sum ?? 0;
   }
 
-  static async totalTaskVotesByUser(
+  static async totalVotesByUserByTask(
     taskId: Task["id"],
     userId: User["id"],
   ): Promise<number> {
@@ -75,6 +75,18 @@ export class SolutionVotes {
       .select(`vote_count.sum()`)
       .eq("task_id", taskId)
       .eq("voted_by", userId)
+      .returns<{ sum: number | null }[]>()
+      .single();
+
+    if (error) throw new Error(JSON.stringify(error));
+    return data.sum ?? 0;
+  }
+
+  static async totalVotesByTask(taskId: Task["id"]): Promise<number> {
+    const { data, error } = await supabase
+      .from(SolutionVotes.VIEW_NAME)
+      .select(`vote_count.sum()`)
+      .eq("task_id", taskId)
       .returns<{ sum: number | null }[]>()
       .single();
 

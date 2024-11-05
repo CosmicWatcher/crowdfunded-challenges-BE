@@ -1,8 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 
 import { SolanaKeypair } from "@/api/solanaKeypair/solanaKeypair.model";
+import { SolutionVotes } from "@/api/solutionVotes/solutionVotes.model";
 import { Task } from "@/api/task/task.model";
-import { getFundingDetails } from "@/api/taskFunds/taskFunds.controller";
+import { TaskFunds } from "@/api/taskFunds/taskFunds.model";
 import { getUserJson } from "@/api/user/user.controller";
 import { User } from "@/api/user/user.model";
 import { GET_TASKS_LIMIT_PER_PAGE } from "@/common/configs/constants";
@@ -20,6 +21,17 @@ export async function getTaskJson(
 ): Promise<TaskResponse> {
   const depositAddress = await task.getDepositAddress();
   const creator = await task.getCreator();
+  const totalFunds = (await TaskFunds.totalKinByTask(task.id)).toDecimal();
+  const totalVotes = await SolutionVotes.totalVotesByTask(task.id);
+
+  let userMetrics: TaskResponse["metrics"]["user"] = null;
+  if (userId) {
+    userMetrics = {
+      totalFunds: (await TaskFunds.totalKinByUser(task.id, userId)).toDecimal(),
+      totalVotes: await SolutionVotes.totalVotesByUserByTask(task.id, userId),
+      votingRights: await getUserVotingRights(task.id, userId),
+    };
+  }
 
   return {
     id: task.id,
@@ -30,11 +42,23 @@ export async function getTaskJson(
     maxWinners: task.maxWinners,
     status: task.status,
     depositAddress: depositAddress ? depositAddress.publicKey : null,
-    fundsRaised: await getFundingDetails(task.id, userId),
     createdAt: task.createdAt,
     editedAt: task.editedAt,
     endedAt: task.endedAt,
+    metrics: {
+      overall: { totalFunds, totalVotes },
+      user: userMetrics,
+    },
   };
+}
+
+export async function getUserVotingRights(
+  taskId: Task["id"],
+  userId: User["id"],
+): Promise<number> {
+  const bought = await TaskFunds.userBoughtVotingRights(taskId, userId);
+  const used = await SolutionVotes.totalVotesByUserByTask(taskId, userId);
+  return bought - used;
 }
 
 export async function getTaskById(
