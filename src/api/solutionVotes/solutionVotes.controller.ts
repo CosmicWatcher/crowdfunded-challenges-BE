@@ -64,7 +64,7 @@ export async function recordSolutionVote(
   // await new Promise((resolve) => setTimeout(resolve, 2000));
 
   try {
-    const voteDetails = await getVoteDetails(solutionId, authUser.id);
+    let voteDetails = await getVoteDetails(solutionId, authUser.id);
     if (
       !voteDetails.userVotingRights ||
       voteDetails.userVotingRights < voteCount
@@ -81,6 +81,8 @@ export async function recordSolutionVote(
       solution_id: solutionId,
       vote_count: voteCount,
     });
+
+    voteDetails = await getVoteDetails(solutionId, authUser.id);
 
     const serviceResponse =
       ServiceResponse.success<SolutionVoteDetailsResponse>(
