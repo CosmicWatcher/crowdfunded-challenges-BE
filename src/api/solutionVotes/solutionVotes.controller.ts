@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 
 import { Solution } from "@/api/solution/solution.model";
 import { SolutionVotes } from "@/api/solutionVotes/solutionVotes.model";
-import { TaskFunds } from "@/api/taskFunds/taskFunds.model";
+import { getUserVotingRights } from "@/api/task/task.controller";
 import { User } from "@/api/user/user.model";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/auth.types";
@@ -20,9 +20,7 @@ export async function getVoteDetails(
   const solution = await Solution.getSolutionById(solutionId);
   const taskId = solution?.taskId;
   const userVotingRights =
-    taskId && userId
-      ? await TaskFunds.getUserVotingRights(taskId, userId)
-      : null;
+    taskId && userId ? await getUserVotingRights(taskId, userId) : null;
 
   return {
     totalVotes,
