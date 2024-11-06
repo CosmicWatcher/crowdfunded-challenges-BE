@@ -46,17 +46,14 @@ export interface SolutionResponse {
   createdBy: UserResponse | null;
   title: string | null;
   details: string | null;
-  voteDetails: SolutionVoteDetailsResponse;
+  userVoteMetrics: SolutionVoteMetrics | null;
   isWinner: boolean;
   createdAt: string;
   editedAt: string | null;
   deletedAt: string | null;
 }
 
-export interface SolutionVoteDetailsResponse {
+export interface SolutionVoteMetrics {
   totalVotes: number;
-  totalVotesByUser: number | null;
-  userVotingRights: UserVotingRights;
+  votingRights: number;
 }
-
-export type UserVotingRights = number | null;

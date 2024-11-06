@@ -6,26 +6,30 @@ import { getUserVotingRights } from "@/api/task/task.controller";
 import { User } from "@/api/user/user.model";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/auth.types";
-import { SolutionVoteDetailsResponse } from "@/common/types/response.types";
+import {
+  SolutionResponse,
+  SolutionVoteMetrics,
+} from "@/common/types/response.types";
 import { handleServiceResponse } from "@/common/utils/helpers";
 
-export async function getVoteDetails(
+export async function getUserVoteMetrics(
   solutionId: Solution["id"],
-  userId?: User["id"],
-): Promise<SolutionVoteDetailsResponse> {
+  userId: User["id"],
+): Promise<NonNullable<SolutionResponse["userVoteMetrics"]>> {
   const totalVotes = await SolutionVotes.totalSolutionVotes(solutionId);
-  const totalVotesByUser = userId
-    ? await SolutionVotes.totalSolutionVotesByUser(solutionId, userId)
-    : null;
+  const totalVotesByUser = await SolutionVotes.totalSolutionVotesByUser(
+    solutionId,
+    userId,
+  );
   const solution = await Solution.getSolutionById(solutionId);
-  const taskId = solution?.taskId;
-  const userVotingRights =
-    taskId && userId ? await getUserVotingRights(taskId, userId) : null;
+  if (!solution) throw new Error(`Solution with id ${solutionId} not found`);
+  const taskId = solution.taskId;
+  if (!taskId) throw new Error(`Task with id ${solution.taskId} not found`);
+  const userVotingRights = await getUserVotingRights(taskId, userId);
 
   return {
-    totalVotes,
-    totalVotesByUser,
-    userVotingRights,
+    totalVotes: totalVotesByUser,
+    votingRights: userVotingRights,
   };
 }
 
@@ -37,13 +41,12 @@ export async function getSolutionVoteDetails(
   const authUser = (req as AuthenticatedRequest).authUser;
 
   try {
-    const serviceResponse =
-      ServiceResponse.success<SolutionVoteDetailsResponse>(
-        "Found Solution Vote Details",
-        {
-          data: await getVoteDetails(req.params.id, authUser.id),
-        },
-      );
+    const serviceResponse = ServiceResponse.success<SolutionVoteMetrics>(
+      "Found Solution Vote Details",
+      {
+        data: await getUserVoteMetrics(req.params.id, authUser.id),
+      },
+    );
     return handleServiceResponse(serviceResponse, res);
   } catch (err) {
     next(err);
@@ -62,11 +65,8 @@ export async function recordSolutionVote(
   // await new Promise((resolve) => setTimeout(resolve, 2000));
 
   try {
-    let voteDetails = await getVoteDetails(solutionId, authUser.id);
-    if (
-      !voteDetails.userVotingRights ||
-      voteDetails.userVotingRights < voteCount
-    ) {
+    let voteMetrics = await getUserVoteMetrics(solutionId, authUser.id);
+    if (!voteMetrics.votingRights || voteMetrics.votingRights < voteCount) {
       const serviceResponse = ServiceResponse.failure(
         "Insufficient voting rights",
         null,
@@ -80,15 +80,14 @@ export async function recordSolutionVote(
       vote_count: voteCount,
     });
 
-    voteDetails = await getVoteDetails(solutionId, authUser.id);
+    voteMetrics = await getUserVoteMetrics(solutionId, authUser.id);
 
-    const serviceResponse =
-      ServiceResponse.success<SolutionVoteDetailsResponse>(
-        "Solution Vote Recorded",
-        {
-          data: voteDetails,
-        },
-      );
+    const serviceResponse = ServiceResponse.success<SolutionVoteMetrics>(
+      "Solution Vote Recorded",
+      {
+        data: voteMetrics,
+      },
+    );
     return handleServiceResponse(serviceResponse, res);
   } catch (err) {
     next(err);
