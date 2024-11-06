@@ -22,6 +22,14 @@ const getSolutionListSchema = z.object({
 const createSolutionSchema = z.object({
   body: z.object({
     taskId: commonValidations.id,
+    title: z
+      .string()
+      .min(FORM_LIMITS.TASK_SOLUTION.TITLE.MIN, {
+        message: `Title must at least ${FORM_LIMITS.TASK_SOLUTION.TITLE.MIN} characters`,
+      })
+      .max(FORM_LIMITS.TASK_SOLUTION.TITLE.MAX, {
+        message: `Title must be less than ${FORM_LIMITS.TASK_SOLUTION.TITLE.MAX} characters`,
+      }),
     description: z
       .string()
       .min(FORM_LIMITS.TASK_SOLUTION.DESCRIPTION.MIN, {

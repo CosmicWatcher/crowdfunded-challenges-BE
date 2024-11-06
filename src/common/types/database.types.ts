@@ -83,6 +83,7 @@ export interface Database {
           id: string;
           is_winner: boolean;
           task_id: string | null;
+          title: string | null;
         };
         Insert: {
           created_at?: string;
@@ -93,6 +94,7 @@ export interface Database {
           id?: string;
           is_winner?: boolean;
           task_id?: string | null;
+          title?: string | null;
         };
         Update: {
           created_at?: string;
@@ -103,6 +105,7 @@ export interface Database {
           id?: string;
           is_winner?: boolean;
           task_id?: string | null;
+          title?: string | null;
         };
         Relationships: [
           {

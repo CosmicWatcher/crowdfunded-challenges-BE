@@ -24,6 +24,7 @@ export async function getSolutionJson(
     id: solution.id,
     taskId: solution.taskId,
     createdBy: creator ? getUserJson(creator) : null,
+    title: solution.title,
     details: solution.details,
     voteDetails,
     isWinner: solution.isWinner,
@@ -98,6 +99,7 @@ export async function createSolution(
     const solution = await Solution.insert({
       created_by: authUser.id,
       task_id: req.body.taskId,
+      title: req.body.title,
       details: req.body.description,
     });
 
