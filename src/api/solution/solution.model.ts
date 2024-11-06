@@ -17,6 +17,9 @@ export class Solution {
   get createdBy() {
     return this.solutionData.created_by;
   }
+  get title() {
+    return this.solutionData.title;
+  }
   get details() {
     return this.solutionData.details;
   }
