@@ -65,6 +65,13 @@ export interface Database {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "solution_votes_solution_id_fkey";
+            columns: ["solution_id"];
+            isOneToOne: false;
+            referencedRelation: "solutions_with_vote_sum";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "solution_votes_voted_by_fkey";
             columns: ["voted_by"];
             isOneToOne: false;
@@ -297,6 +304,36 @@ export interface Database {
           {
             foreignKeyName: "solution_votes_voted_by_fkey";
             columns: ["voted_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "solutions_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      solutions_with_vote_sum: {
+        Row: {
+          created_at: string | null;
+          created_by: string | null;
+          deleted_at: string | null;
+          details: string | null;
+          edited_at: string | null;
+          id: string | null;
+          is_winner: boolean | null;
+          sum: number | null;
+          task_id: string | null;
+          title: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "solutions_created_by_fkey";
+            columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];

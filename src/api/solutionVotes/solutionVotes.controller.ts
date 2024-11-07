@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response } from "express";
 
-import { getSolutionJson } from "@/api/solution/solution.controller";
 import { Solution } from "@/api/solution/solution.model";
 import { SolutionVotes } from "@/api/solutionVotes/solutionVotes.model";
 import { getUserVotingRights } from "@/api/task/task.controller";
@@ -19,7 +18,6 @@ export async function getUserVoteMetrics(
   solutionId: Solution["id"],
   userId: User["id"],
 ): Promise<NonNullable<SolutionResponse["userVoteMetrics"]>> {
-  const totalVotes = await SolutionVotes.totalSolutionVotes(solutionId);
   const totalVotesByUser = await SolutionVotes.totalSolutionVotesByUser(
     solutionId,
     userId,
