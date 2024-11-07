@@ -5,6 +5,7 @@ import { supabase } from "@/common/utils/supabase";
 
 export class Solution {
   static readonly TABLE_NAME = "solutions" as const;
+  static readonly TOP_SOLUTIONS_VIEW = "solutions_with_vote_sum" as const;
 
   constructor(private solutionData: Tables<typeof Solution.TABLE_NAME>) {}
 
@@ -69,6 +70,7 @@ export class Solution {
       .from(Solution.TABLE_NAME)
       .select("*", { count: "estimated" })
       .eq("task_id", taskId)
+      .is("deleted_at", null)
       .order("created_at", { ascending })
       .range(rangeStart, rangeEnd);
     if (error) throw new Error(JSON.stringify(error));
@@ -78,6 +80,25 @@ export class Solution {
       solutions.push(new Solution(row));
     }
     return { solutions, totalRecords: count ?? solutions.length };
+  }
+
+  static async getTopSolutionsByVoteCount(
+    taskId: string,
+  ): Promise<{ solution: Solution; voteCount: number }[]> {
+    const { data, error } = await supabase
+      .from(Solution.TOP_SOLUTIONS_VIEW)
+      .select("*")
+      .eq("task_id", taskId)
+      .is("deleted_at", null)
+      .order("sum", { ascending: false });
+    if (error) throw new Error(JSON.stringify(error));
+
+    const solutions: { solution: Solution; voteCount: number }[] = [];
+    for (const row of data) {
+      const { sum, ...solutionData } = row;
+      solutions.push({ solution: new Solution(solutionData), voteCount: sum });
+    }
+    return solutions;
   }
 
   static async insert(
