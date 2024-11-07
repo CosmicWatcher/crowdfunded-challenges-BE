@@ -3,6 +3,8 @@ import { User } from "@/api/user/user.model";
 import { Tables, TablesInsert } from "@/common/types/database.types";
 import { supabase } from "@/common/utils/supabase";
 
+type TopSolutionsView = Tables<typeof Solution.TABLE_NAME> & { sum: number };
+
 export class Solution {
   static readonly TABLE_NAME = "solutions" as const;
   static readonly TOP_SOLUTIONS_VIEW = "solutions_with_vote_sum" as const;
@@ -89,8 +91,8 @@ export class Solution {
       .from(Solution.TOP_SOLUTIONS_VIEW)
       .select("*")
       .eq("task_id", taskId)
-      .is("deleted_at", null)
-      .order("sum", { ascending: false });
+      .order("sum", { ascending: false })
+      .returns<TopSolutionsView[]>();
     if (error) throw new Error(JSON.stringify(error));
 
     const solutions: { solution: Solution; voteCount: number }[] = [];
