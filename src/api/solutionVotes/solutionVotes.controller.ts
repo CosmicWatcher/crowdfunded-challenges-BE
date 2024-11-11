@@ -8,7 +8,6 @@ import { User } from "@/api/user/user.model";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/auth.types";
 import {
-  SolutionResponse,
   SolutionVoteMetrics,
   SolutionVoteResponse,
 } from "@/common/types/response.types";
@@ -17,7 +16,7 @@ import { handleServiceResponse } from "@/common/utils/helpers";
 export async function getUserVoteMetrics(
   solutionId: Solution["id"],
   userId: User["id"],
-): Promise<NonNullable<SolutionResponse["userVoteMetrics"]>> {
+): Promise<SolutionVoteMetrics> {
   const totalVotesByUser = await SolutionVotes.totalSolutionVotesByUser(
     solutionId,
     userId,
