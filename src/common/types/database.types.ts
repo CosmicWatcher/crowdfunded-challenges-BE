@@ -34,6 +34,30 @@ export interface Database {
   };
   public: {
     Tables: {
+      solana_accounts: {
+        Row: {
+          created_at: string;
+          id: string;
+          is_on_chain: boolean;
+          private_key: string;
+          public_key: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          is_on_chain?: boolean;
+          private_key: string;
+          public_key: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          is_on_chain?: boolean;
+          private_key?: string;
+          public_key?: string;
+        };
+        Relationships: [];
+      };
       solution_votes: {
         Row: {
           id: string;
@@ -185,27 +209,6 @@ export interface Database {
           },
         ];
       };
-      task_solana_keypairs: {
-        Row: {
-          created_at: string;
-          id: string;
-          private_key: string;
-          public_key: string;
-        };
-        Insert: {
-          created_at?: string;
-          id?: string;
-          private_key: string;
-          public_key: string;
-        };
-        Update: {
-          created_at?: string;
-          id?: string;
-          private_key?: string;
-          public_key?: string;
-        };
-        Relationships: [];
-      };
       tasks: {
         Row: {
           created_at: string;
@@ -261,10 +264,34 @@ export interface Database {
             foreignKeyName: "tasks_deposit_address_fkey";
             columns: ["deposit_address"];
             isOneToOne: false;
-            referencedRelation: "task_solana_keypairs";
+            referencedRelation: "solana_accounts";
             referencedColumns: ["id"];
           },
         ];
+      };
+      temp_wallets: {
+        Row: {
+          created_at: string;
+          id: string;
+          private_key: string;
+          public_key: string;
+          user_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          private_key: string;
+          public_key: string;
+          user_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          private_key?: string;
+          public_key?: string;
+          user_id?: string | null;
+        };
+        Relationships: [];
       };
       users: {
         Row: {
