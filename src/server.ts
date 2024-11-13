@@ -10,6 +10,7 @@ import { solutionRouter } from "@/api/solution/solution.router";
 import { solutionVotesRouter } from "@/api/solutionVotes/solutionVotes.router";
 import { taskRouter } from "@/api/task/task.router";
 import { taskFundsRouter } from "@/api/taskFunds/taskFunds.router";
+import { userRouter } from "@/api/user/user.router";
 import { env } from "@/common/configs/env";
 import errorHandler from "@/common/middleware/errorHandler";
 import rateLimiter from "@/common/middleware/rateLimiter";
@@ -33,6 +34,7 @@ app.use(requestLogger);
 
 // Routes
 app.use("/health-check", healthCheckRouter);
+app.use("/users", userRouter);
 app.use("/tasks", taskRouter);
 app.use("/solutions", solutionRouter);
 app.use("/solution-votes", solutionVotesRouter);
