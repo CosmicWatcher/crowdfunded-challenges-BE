@@ -1,7 +1,7 @@
 import { User as AuthUser } from "@supabase/supabase-js";
 import { Request } from "express";
 
-import { Tables } from "@/common/types/database.types";
+import { Tables, TablesUpdate } from "@/common/types/database.types";
 import { getJwtToken } from "@/common/utils/helpers";
 import { supabase } from "@/common/utils/supabase";
 
@@ -48,5 +48,17 @@ export class User {
     if (error) throw new Error(JSON.stringify(error));
 
     return data.user.id;
+  }
+
+  async update(userData: TablesUpdate<typeof User.TABLE_NAME>): Promise<User> {
+    const { data, error } = await supabase
+      .from(User.TABLE_NAME)
+      .update(userData)
+      .eq("id", this.id)
+      .select()
+      .single();
+    if (error) throw new Error(JSON.stringify(error));
+    this.userData = data;
+    return this;
   }
 }
