@@ -10,7 +10,7 @@ import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/auth.types";
 import { TaskResponse } from "@/common/types/response.types";
 import { handleServiceResponse } from "@/common/utils/helpers";
-import { kinPubKey } from "@/common/utils/solana";
+import { createAccountOnChain, kinPubKey } from "@/common/utils/solana";
 import { solanaPayer } from "@/common/utils/solana";
 import { solanaConn } from "@/common/utils/solana";
 
@@ -66,7 +66,7 @@ export async function mockRecordContribution(
       return handleServiceResponse(serviceResponse, res);
     }
 
-    let depositAccount = await task.getSolanaAccount();
+    const depositAccount = await task.getSolanaAccount();
     if (!depositAccount) {
       const serviceResponse = ServiceResponse.failure(
         "Task has no deposit address",
@@ -74,8 +74,8 @@ export async function mockRecordContribution(
       );
       return handleServiceResponse(serviceResponse, res);
     }
-    depositAccount = await depositAccount.putOnChain();
 
+    await createAccountOnChain(depositAccount.keypair);
     const tokenAccount = await getOrCreateAssociatedTokenAccount(
       solanaConn,
       solanaPayer,

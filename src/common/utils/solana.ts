@@ -15,6 +15,9 @@ export const kinPubKey = new PublicKey(env.KIN_MINT_ADDRESS);
 export const solanaConn = new Connection(clusterApiUrl(env.SOLANA_RPC));
 
 export async function createAccountOnChain(newAccount: Keypair) {
+  const accountInfo = await solanaConn.getAccountInfo(newAccount.publicKey);
+  if (accountInfo) return;
+
   const space = 0;
   const rentExemptionAmount =
     await solanaConn.getMinimumBalanceForRentExemption(space);
