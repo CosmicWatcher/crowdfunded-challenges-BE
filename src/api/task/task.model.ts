@@ -1,4 +1,4 @@
-import { SolanaKeypair } from "@/api/solanaKeypair/solanaKeypair.model";
+import { SolanaAccount } from "@/api/solanaAccount/solanaAccount.model";
 import { User } from "@/api/user/user.model";
 import {
   Tables,
@@ -48,7 +48,7 @@ export class Task {
   get creatorBy() {
     return this.taskData.created_by;
   }
-  get depositAddressId() {
+  get solanaAccountId() {
     return this.taskData.deposit_address;
   }
 
@@ -57,9 +57,9 @@ export class Task {
     return await User.getUserById(this.creatorBy);
   }
 
-  async getDepositAddress(): Promise<SolanaKeypair | null> {
-    if (!this.depositAddressId) return null;
-    return await SolanaKeypair.getKeypairById(this.depositAddressId);
+  async getSolanaAccount(): Promise<SolanaAccount | null> {
+    if (!this.solanaAccountId) return null;
+    return await SolanaAccount.getAccountById(this.solanaAccountId);
   }
 
   static async getTaskById(id: string): Promise<Task | null> {

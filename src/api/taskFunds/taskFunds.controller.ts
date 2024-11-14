@@ -1,4 +1,7 @@
 import { Kin } from "@code-wallet/currency";
+import { airdropIfRequired } from "@solana-developers/helpers";
+import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
+import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { NextFunction, Request, Response } from "express";
 
 import { getTaskJson } from "@/api/task/task.controller";
@@ -7,6 +10,9 @@ import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/auth.types";
 import { TaskResponse } from "@/common/types/response.types";
 import { handleServiceResponse } from "@/common/utils/helpers";
+import { kinPubKey } from "@/common/utils/solana";
+import { solanaPayer } from "@/common/utils/solana";
+import { solanaConn } from "@/common/utils/solana";
 
 // export async function get(req: Request, res: Response, next: NextFunction) {
 //   const authUser = (req as AuthenticatedRequest).authUser;
@@ -30,11 +36,12 @@ export async function mockRecordContribution(
   res: Response,
   next: NextFunction,
 ) {
+  const taskId = req.body.taskId;
+  const amount = req.body.amount;
   const authUser = (req as AuthenticatedRequest).authUser;
 
-  await new Promise((resolve) => setTimeout(resolve, 2000));
   const payload = {
-    amount: req.body.amount,
+    amount: amount,
     currency: "USD",
     destination: "",
     exchangeRate: 0.00000893,
@@ -49,18 +56,41 @@ export async function mockRecordContribution(
   try {
     const taskFund = await TaskFunds.insert({
       funded_by: authUser.id,
-      task_id: req.body.taskId,
+      task_id: taskId,
       amount_quarks: payload.quarks,
       amount_fiat: payload.amount,
     });
     const task = await taskFund.getTask();
     if (!task) {
-      const serviceResponse = ServiceResponse.success(
-        "Fund Contribution Recorded",
+      const serviceResponse = ServiceResponse.failure("Task not found", null);
+      return handleServiceResponse(serviceResponse, res);
+    }
+
+    let depositAccount = await task.getSolanaAccount();
+    if (!depositAccount) {
+      const serviceResponse = ServiceResponse.failure(
+        "Task has no deposit address",
         null,
       );
       return handleServiceResponse(serviceResponse, res);
     }
+    depositAccount = await depositAccount.putOnChain();
+
+    const tokenAccount = await getOrCreateAssociatedTokenAccount(
+      solanaConn,
+      solanaPayer,
+      kinPubKey,
+      depositAccount.keypair.publicKey,
+    );
+    const sig = await mintTo(
+      solanaConn,
+      solanaPayer,
+      kinPubKey,
+      tokenAccount.address,
+      solanaPayer,
+      payload.quarks,
+    );
+    console.log(`Funded task ${taskId} with ${amount} USD. Signature: ${sig}`);
 
     const serviceResponse = ServiceResponse.success<TaskResponse>(
       "Fund Contribution Recorded",
