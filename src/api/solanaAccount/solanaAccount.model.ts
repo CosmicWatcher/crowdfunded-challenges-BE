@@ -84,14 +84,9 @@ export class SolanaAccount {
   static async getOrCreateAccount() {
     let account = await SolanaAccount.getAccountNotInUse();
     if (!account) account = await SolanaAccount.createKeypair();
+    await createAccountOnChain(account.keypair);
 
-    return await account.putOnChain();
-  }
-
-  async putOnChain() {
-    if (this.isOnChain) return this;
-    await createAccountOnChain(this.keypair);
-    return await this.update({ is_on_chain: true });
+    return account;
   }
 
   async update(
