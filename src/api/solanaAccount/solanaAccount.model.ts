@@ -25,9 +25,6 @@ export class SolanaAccount {
   get createdAt() {
     return this.accountData.created_at;
   }
-  get isOnChain() {
-    return this.accountData.is_on_chain;
-  }
   get keypair() {
     return this.keypairObject;
   }

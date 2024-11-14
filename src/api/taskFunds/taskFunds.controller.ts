@@ -1,7 +1,5 @@
 import { Kin } from "@code-wallet/currency";
-import { airdropIfRequired } from "@solana-developers/helpers";
 import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
-import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { NextFunction, Request, Response } from "express";
 
 import { getTaskJson } from "@/api/task/task.controller";
