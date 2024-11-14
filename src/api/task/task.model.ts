@@ -58,7 +58,11 @@ export class Task {
   }
 
   async getSolanaAccount(): Promise<SolanaAccount | null> {
-    if (!this.solanaAccountId) return null;
+    if (!this.solanaAccountId) {
+      const account = await SolanaAccount.getOrCreateAccount();
+      await this.update({ deposit_address: account.id });
+      return account;
+    }
     return await SolanaAccount.getAccountById(this.solanaAccountId);
   }
 
