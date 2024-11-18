@@ -89,17 +89,38 @@ export async function recordSolutionVote(
       return handleServiceResponse(serviceResponse, res);
     }
 
+    const solution = await Solution.getSolutionById(solutionId);
+    if (!solution) {
+      const serviceResponse = ServiceResponse.failure(
+        `Solution with id ${solutionId} not found`,
+        null,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
+
+    if (solution.createdBy === authUser.id) {
+      const serviceResponse = ServiceResponse.failure(
+        "Cannot vote for your own solution",
+        null,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
+
+    const taskId = solution.taskId;
+    if (!taskId) {
+      const serviceResponse = ServiceResponse.failure(
+        `Task with id ${solution.taskId} not found`,
+        null,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
+
     await SolutionVotes.insert({
       voted_by: authUser.id,
       solution_id: solutionId,
       vote_count: voteCount,
     });
     voteMetrics = await getUserVoteMetrics(solutionId, authUser.id);
-
-    const solution = await Solution.getSolutionById(solutionId);
-    if (!solution) throw new Error(`Solution with id ${solutionId} not found`);
-    const taskId = solution.taskId;
-    if (!taskId) throw new Error(`Task with id ${solution.taskId} not found`);
 
     const solutions = await Solution.getTopSolutionsByVoteCount(taskId);
     const returnData: Awaited<ReturnType<typeof getSolutionVoteJson>>[] = [];
