@@ -14,3 +14,6 @@ create table public.task_funding (
 );
 
 alter table public.task_funding enable row level security;
+
+ALTER ROLE authenticator SET pgrst.db_aggregates_enabled = 'true';
+NOTIFY pgrst, 'reload config';
