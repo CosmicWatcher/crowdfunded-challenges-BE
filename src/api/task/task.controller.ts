@@ -5,6 +5,7 @@ import { NextFunction, Request, Response } from "express";
 import { SolanaAccount } from "@/api/solanaAccount/solanaAccount.model";
 import { Solution } from "@/api/solution/solution.model";
 import { SolutionVotes } from "@/api/solutionVotes/solutionVotes.model";
+import { TaskPayout } from "@/api/task/payout.model";
 import { Task } from "@/api/task/task.model";
 import { TaskFunds } from "@/api/taskFunds/taskFunds.model";
 import { getUserJson } from "@/api/user/user.controller";
@@ -235,7 +236,10 @@ export async function payWinners(
       if (validWinners.length >= task.maxWinners) break;
       const creator = await solution.getCreator();
       if (creator?.depositAddress) {
-        validWinners.push(creator.depositAddress);
+        validWinners.push({
+          creatorId: creator.id,
+          depositAddress: creator.depositAddress,
+        });
       }
     }
     if (validWinners.length === 0) {
@@ -248,13 +252,14 @@ export async function payWinners(
 
     // calculate amountPerWinner based on valid winners
     const totalFunds = await TaskFunds.totalKinByTask(taskId);
-    let amountPerWinner = totalFunds;
+    let kinPerWinner = totalFunds;
     if (validWinners.length > 1)
-      amountPerWinner = totalFunds.divide(validWinners.length);
+      kinPerWinner = totalFunds.divide(validWinners.length);
+    const quarksPerWinner = kinPerWinner.toQuarks();
 
     // Distribute funds to each valid winner
-    for (const winnerAddress of validWinners) {
-      const creatorPubKey = new PublicKey(winnerAddress);
+    for (const { creatorId, depositAddress } of validWinners) {
+      const creatorPubKey = new PublicKey(depositAddress);
       const sourceAccount = await getOrCreateAssociatedTokenAccount(
         solanaConn,
         solanaPayer,
@@ -267,20 +272,25 @@ export async function payWinners(
         kinPubKey,
         creatorPubKey,
       );
-      await transfer(
+      const signature = await transfer(
         solanaConn,
         solanaPayer,
         sourceAccount.address,
         destinationAccount.address,
         taskSolanaAccount.keypair,
-        amountPerWinner.toQuarks(),
+        quarksPerWinner,
       );
+      await TaskPayout.insert({
+        tx_signature: signature,
+        task_id: taskId,
+        payee: creatorId,
+        amount_quarks: Number(quarksPerWinner),
+        destination_address: depositAddress,
+      });
     }
 
     const serviceResponse = ServiceResponse.success(
-      `Funds distributed to ${validWinners.length} winners: [${validWinners.join(
-        ", ",
-      )}]`,
+      `Funds distributed to ${validWinners.length} users: [${validWinners.map((w) => w.creatorId).join(", ")}]`,
       null,
     );
     return handleServiceResponse(serviceResponse, res);

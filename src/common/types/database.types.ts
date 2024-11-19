@@ -38,21 +38,18 @@ export interface Database {
         Row: {
           created_at: string;
           id: string;
-          is_on_chain: boolean;
           private_key: string;
           public_key: string;
         };
         Insert: {
           created_at?: string;
           id?: string;
-          is_on_chain?: boolean;
           private_key: string;
           public_key: string;
         };
         Update: {
           created_at?: string;
           id?: string;
-          is_on_chain?: boolean;
           private_key?: string;
           public_key?: string;
         };
@@ -202,6 +199,48 @@ export interface Database {
           },
           {
             foreignKeyName: "task_funding_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      task_payout: {
+        Row: {
+          amount_quarks: number;
+          destination_address: string;
+          payee: string;
+          payout_at: string;
+          task_id: string;
+          tx_signature: string;
+        };
+        Insert: {
+          amount_quarks: number;
+          destination_address: string;
+          payee: string;
+          payout_at?: string;
+          task_id: string;
+          tx_signature: string;
+        };
+        Update: {
+          amount_quarks?: number;
+          destination_address?: string;
+          payee?: string;
+          payout_at?: string;
+          task_id?: string;
+          tx_signature?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_payout_payout_to_fkey";
+            columns: ["payee"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_payout_task_id_fkey";
             columns: ["task_id"];
             isOneToOne: false;
             referencedRelation: "tasks";
