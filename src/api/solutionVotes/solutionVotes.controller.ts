@@ -106,10 +106,18 @@ export async function recordSolutionVote(
       return handleServiceResponse(serviceResponse, res);
     }
 
-    const taskId = solution.taskId;
-    if (!taskId) {
+    const task = await solution.getTask();
+    if (!task) {
       const serviceResponse = ServiceResponse.failure(
         `Task with id ${solution.taskId} not found`,
+        null,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
+
+    if (task.kind === "personal" && task.createdBy !== authUser.id) {
+      const serviceResponse = ServiceResponse.failure(
+        "Cannot vote for a personal task you didn't create",
         null,
       );
       return handleServiceResponse(serviceResponse, res);
@@ -122,7 +130,7 @@ export async function recordSolutionVote(
     });
     voteMetrics = await getUserVoteMetrics(solutionId, authUser.id);
 
-    const solutions = await Solution.getTopSolutionsByVoteCount(taskId);
+    const solutions = await Solution.getTopSolutionsByVoteCount(task.id);
     const returnData: Awaited<ReturnType<typeof getSolutionVoteJson>>[] = [];
     for (const item of solutions) {
       returnData.push(await getSolutionVoteJson(item.solution, item.voteCount));

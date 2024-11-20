@@ -30,7 +30,11 @@ export async function getTaskJson(
   const totalVotes = await SolutionVotes.totalVotesByTask(task.id);
 
   let userMetrics: TaskResponse["metrics"]["user"] = null;
-  if (userId) {
+  if (
+    userId &&
+    (task.kind === "community" ||
+      (task.kind === "personal" && userId === creator?.id))
+  ) {
     userMetrics = {
       totalFunds: (await TaskFunds.totalKinByUser(task.id, userId)).toDecimal(),
       totalVotes: await SolutionVotes.totalVotesByUserByTask(task.id, userId),
