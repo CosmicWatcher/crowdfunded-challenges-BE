@@ -45,7 +45,7 @@ export class Task {
   get kind() {
     return this.taskData.kind;
   }
-  get creatorBy() {
+  get createdBy() {
     return this.taskData.created_by;
   }
   get solanaAccountId() {
@@ -53,8 +53,8 @@ export class Task {
   }
 
   async getCreator(): Promise<User | null> {
-    if (!this.creatorBy) return null;
-    return await User.getUserById(this.creatorBy);
+    if (!this.createdBy) return null;
+    return await User.getUserById(this.createdBy);
   }
 
   async getSolanaAccount(): Promise<SolanaAccount | null> {
