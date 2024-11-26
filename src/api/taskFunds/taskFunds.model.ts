@@ -1,6 +1,5 @@
 import { Kin } from "@code-wallet/currency";
 
-import { SolutionVotes } from "@/api/solutionVotes/solutionVotes.model";
 import { Task } from "@/api/task/task.model";
 import { User } from "@/api/user/user.model";
 import { Tables, TablesInsert } from "@/common/types/database.types";
@@ -36,6 +35,25 @@ export class TaskFunds {
   async getTask(): Promise<Task | null> {
     if (!this.taskId) return null;
     return await Task.getTaskById(this.taskId);
+  }
+
+  static async getFundersByTask(taskId: Task["id"]): Promise<
+    {
+      funderId: User["id"];
+      amount: Kin;
+    }[]
+  > {
+    const { data, error } = await supabase
+      .from(TaskFunds.TABLE_NAME)
+      .select("funded_by, amount_quarks.sum()")
+      .eq("task_id", taskId)
+      .returns<{ funded_by: User["id"]; sum: number }[]>();
+
+    if (error) throw new Error(JSON.stringify(error));
+    return data.map(({ funded_by, sum }) => ({
+      funderId: funded_by,
+      amount: Kin.fromQuarks(BigInt(sum)),
+    }));
   }
 
   static async totalKinByTask(taskId: Task["id"]): Promise<Kin> {

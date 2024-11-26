@@ -3,9 +3,9 @@ import { z } from "zod";
 
 import {
   createTask,
+  endTask,
   getTaskById,
   getTaskList,
-  payWinners,
 } from "@/api/task/task.controller";
 import { TaskKind } from "@/api/task/task.model";
 import { FORM_LIMITS } from "@/common/configs/constants";
@@ -52,8 +52,26 @@ const createTaskSchema = z.object({
 });
 
 taskRouter.get("/", validateRequest(getTaskListSchema), getTaskList);
-taskRouter.get("/:id/payout", validateRequest(getTaskSchema), payWinners);
+taskRouter.post(
+  "/:id/success",
+  validateRequest(getTaskSchema),
+  validateUser(),
+  endTask(true),
+);
+taskRouter.post(
+  "/:id/fail",
+  validateRequest(getTaskSchema),
+  validateUser(),
+  endTask(false),
+);
+// taskRouter.post("/:id/payout", validateRequest(getTaskSchema), payWinners);
 taskRouter.get("/:id", validateRequest(getTaskSchema), getTaskById);
+// taskRouter.delete(
+//   "/:id",
+//   validateRequest(getTaskSchema),
+//   validateUser(),
+//   deleteTask,
+// );
 taskRouter.post(
   "/create",
   validateRequest(createTaskSchema),

@@ -3,6 +3,7 @@ import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
 import { NextFunction, Request, Response } from "express";
 
 import { getTaskJson } from "@/api/task/task.controller";
+import { Task } from "@/api/task/task.model";
 import { TaskFunds } from "@/api/taskFunds/taskFunds.model";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/auth.types";
@@ -34,7 +35,7 @@ export async function mockRecordContribution(
   res: Response,
   next: NextFunction,
 ) {
-  const taskId = req.body.taskId;
+  const taskId = req.body.taskId as Task["id"];
   const amount = req.body.amount;
   const authUser = (req as AuthenticatedRequest).authUser;
 
@@ -52,15 +53,16 @@ export async function mockRecordContribution(
   );
 
   try {
-    const taskFund = await TaskFunds.insert({
-      funded_by: authUser.id,
-      task_id: taskId,
-      amount_quarks: payload.quarks,
-      amount_fiat: payload.amount,
-    });
-    const task = await taskFund.getTask();
+    const task = await Task.getTaskById(taskId);
     if (!task) {
       const serviceResponse = ServiceResponse.failure("Task not found", null);
+      return handleServiceResponse(serviceResponse, res);
+    }
+    if (task.status !== "active") {
+      const serviceResponse = ServiceResponse.failure(
+        "Task is not active",
+        null,
+      );
       return handleServiceResponse(serviceResponse, res);
     }
 
@@ -88,6 +90,14 @@ export async function mockRecordContribution(
       solanaPayer,
       payload.quarks,
     );
+
+    await TaskFunds.insert({
+      funded_by: authUser.id,
+      task_id: taskId,
+      amount_quarks: payload.quarks,
+      amount_fiat: payload.amount,
+    });
+
     console.log(`Funded task ${taskId} with ${amount} USD. Signature: ${sig}`);
 
     const serviceResponse = ServiceResponse.success<TaskResponse>(

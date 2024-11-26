@@ -155,7 +155,7 @@ export interface Database {
       task_funding: {
         Row: {
           amount_fiat: number | null;
-          amount_quarks: number | null;
+          amount_quarks: number;
           currency: string | null;
           destination_address: string | null;
           exchange_rate: number | null;
@@ -167,7 +167,7 @@ export interface Database {
         };
         Insert: {
           amount_fiat?: number | null;
-          amount_quarks?: number | null;
+          amount_quarks?: number;
           currency?: string | null;
           destination_address?: string | null;
           exchange_rate?: number | null;
@@ -179,7 +179,7 @@ export interface Database {
         };
         Update: {
           amount_fiat?: number | null;
-          amount_quarks?: number | null;
+          amount_quarks?: number;
           currency?: string | null;
           destination_address?: string | null;
           exchange_rate?: number | null;
@@ -199,6 +199,48 @@ export interface Database {
           },
           {
             foreignKeyName: "task_funding_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      task_funding_return: {
+        Row: {
+          amount_quarks: number;
+          destination_address: string;
+          funder_id: string;
+          return_at: string;
+          task_id: string;
+          tx_signature: string;
+        };
+        Insert: {
+          amount_quarks: number;
+          destination_address: string;
+          funder_id: string;
+          return_at?: string;
+          task_id: string;
+          tx_signature: string;
+        };
+        Update: {
+          amount_quarks?: number;
+          destination_address?: string;
+          funder_id?: string;
+          return_at?: string;
+          task_id?: string;
+          tx_signature?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_funding_return_funder_id_fkey";
+            columns: ["funder_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_funding_return_task_id_fkey";
             columns: ["task_id"];
             isOneToOne: false;
             referencedRelation: "tasks";
@@ -233,7 +275,7 @@ export interface Database {
         };
         Relationships: [
           {
-            foreignKeyName: "task_payout_payout_to_fkey";
+            foreignKeyName: "task_payout_payee_fkey";
             columns: ["payee"];
             isOneToOne: false;
             referencedRelation: "users";
@@ -348,15 +390,7 @@ export interface Database {
           id?: string;
           username?: string | null;
         };
-        Relationships: [
-          {
-            foreignKeyName: "users_id_fkey";
-            columns: ["id"];
-            isOneToOne: true;
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          },
-        ];
+        Relationships: [];
       };
     };
     Views: {
@@ -507,4 +541,19 @@ export type Enums<
   ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
     ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+    : never;
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+    keyof PublicSchema["CompositeTypes"] | { schema: keyof Database },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof Database;
+  }
+    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
+    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never;
