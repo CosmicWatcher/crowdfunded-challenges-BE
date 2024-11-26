@@ -5,6 +5,7 @@ import { NextFunction, Request, Response } from "express";
 import { SolanaAccount } from "@/api/solanaAccount/solanaAccount.model";
 import { Solution } from "@/api/solution/solution.model";
 import { SolutionVotes } from "@/api/solutionVotes/solutionVotes.model";
+import { TaskFundingReturn } from "@/api/task/fundReturn.model";
 import { TaskPayout } from "@/api/task/payout.model";
 import { Task } from "@/api/task/task.model";
 import { TaskFunds } from "@/api/taskFunds/taskFunds.model";
@@ -190,115 +191,181 @@ export async function createTask(
   }
 }
 
-export async function payWinners(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
-  const taskId = req.params.id;
+export function endTask(isSuccessful: boolean) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const taskId = req.params.id;
+    const authUser = (req as AuthenticatedRequest).authUser;
 
-  try {
-    let task: Task | null = null;
-
-    // get task
-    task = await Task.getTaskById(taskId);
-    if (!task) {
-      const serviceResponse = ServiceResponse.failure("Task not Found", null);
-      return handleServiceResponse(serviceResponse, res);
-    }
-    if (task.status !== "active") {
-      const serviceResponse = ServiceResponse.failure(
-        "Task is not in active status",
-        null,
-      );
-      return handleServiceResponse(serviceResponse, res);
-    }
-
-    // get task deposit address
-    const taskSolanaAccount = await task.getSolanaAccount();
-    if (!taskSolanaAccount) {
-      const serviceResponse = ServiceResponse.failure(
-        "Task has no deposit address",
-        null,
-      );
-      return handleServiceResponse(serviceResponse, res);
-    }
-
-    // get winning solutions
-    const topSolutions = await Solution.getTopSolutionsByVoteCount(taskId);
-    if (topSolutions.length === 0) {
-      const serviceResponse = ServiceResponse.failure(
-        "No solutions found to distribute funds to",
-        null,
-      );
-      return handleServiceResponse(serviceResponse, res);
-    }
-
-    // validate all winners
-    const validWinners = [];
-    for (const { solution } of topSolutions) {
-      if (validWinners.length >= task.maxWinners) break;
-      const creator = await solution.getCreator();
-      if (creator?.depositAddress) {
-        validWinners.push({
-          creatorId: creator.id,
-          depositAddress: creator.depositAddress,
-        });
+    try {
+      let task = await Task.getTaskById(taskId);
+      if (!task) {
+        const serviceResponse = ServiceResponse.failure("Task not Found", null);
+        return handleServiceResponse(serviceResponse, res);
       }
-    }
-    if (validWinners.length === 0) {
-      const serviceResponse = ServiceResponse.failure(
-        "No valid winners found to distribute funds to",
-        null,
-      );
+      if (task.status !== "active") {
+        const serviceResponse = ServiceResponse.failure(
+          "Task is not in active status",
+          null,
+        );
+        return handleServiceResponse(serviceResponse, res);
+      }
+
+      if (task.createdBy !== authUser.id) {
+        const serviceResponse = ServiceResponse.failure(
+          "Only the task creator can end the task",
+          null,
+        );
+        return handleServiceResponse(serviceResponse, res);
+      }
+
+      let responseMessage: string;
+      if (isSuccessful) {
+        responseMessage = await payWinners(task);
+      } else {
+        responseMessage = await returnFunds(task);
+      }
+
+      task = await task.update({
+        status: isSuccessful ? "successful" : "failed",
+      });
+
+      const serviceResponse = ServiceResponse.success(responseMessage, {
+        data: await getTaskJson(task, authUser.id),
+      });
+
       return handleServiceResponse(serviceResponse, res);
+    } catch (e) {
+      next(e);
     }
+  };
+}
 
-    // calculate amountPerWinner based on valid winners
-    const totalFunds = await TaskFunds.totalKinByTask(taskId);
-    let kinPerWinner = totalFunds;
-    if (validWinners.length > 1)
-      kinPerWinner = totalFunds.divide(validWinners.length);
-    const quarksPerWinner = kinPerWinner.toQuarks();
+export async function payWinners(task: Task): Promise<string> {
+  // get task deposit address
+  const taskSolanaAccount = await task.getSolanaAccount();
+  if (!taskSolanaAccount) {
+    return "Task has no deposit address";
+  }
 
-    // Distribute funds to each valid winner
-    for (const { creatorId, depositAddress } of validWinners) {
-      const creatorPubKey = new PublicKey(depositAddress);
-      const sourceAccount = await getOrCreateAssociatedTokenAccount(
-        solanaConn,
-        solanaPayer,
-        kinPubKey,
-        taskSolanaAccount.keypair.publicKey,
-      );
-      const destinationAccount = await getOrCreateAssociatedTokenAccount(
-        solanaConn,
-        solanaPayer,
-        kinPubKey,
-        creatorPubKey,
-      );
-      const signature = await transfer(
-        solanaConn,
-        solanaPayer,
-        sourceAccount.address,
-        destinationAccount.address,
-        taskSolanaAccount.keypair,
-        quarksPerWinner,
-      );
-      await TaskPayout.insert({
-        tx_signature: signature,
-        task_id: taskId,
-        payee: creatorId,
-        amount_quarks: Number(quarksPerWinner),
-        destination_address: depositAddress,
+  // get winning solutions
+  const topSolutions = await Solution.getTopSolutionsByVoteCount(task.id);
+  if (topSolutions.length === 0) {
+    return "No solutions found to distribute funds to";
+  }
+
+  // validate all winners
+  const validWinners = [];
+  for (const { solution } of topSolutions) {
+    if (validWinners.length >= task.maxWinners) break;
+    const creator = await solution.getCreator();
+    if (creator?.depositAddress) {
+      validWinners.push({
+        creatorId: creator.id,
+        depositAddress: creator.depositAddress,
       });
     }
-
-    const serviceResponse = ServiceResponse.success(
-      `Funds distributed to ${validWinners.length} users: [${validWinners.map((w) => w.creatorId).join(", ")}]`,
-      null,
-    );
-    return handleServiceResponse(serviceResponse, res);
-  } catch (e) {
-    next(e);
   }
+  if (validWinners.length === 0) {
+    return "No valid winners found to distribute funds to";
+  }
+
+  // calculate amountPerWinner based on valid winners
+  const totalFunds = await TaskFunds.totalKinByTask(task.id);
+  let kinPerWinner = totalFunds;
+  if (validWinners.length > 1)
+    kinPerWinner = totalFunds.divide(validWinners.length);
+  const quarksPerWinner = kinPerWinner.toQuarks();
+
+  // Get task's solana account to transfer from
+  const sourceAccount = await getOrCreateAssociatedTokenAccount(
+    solanaConn,
+    solanaPayer,
+    kinPubKey,
+    taskSolanaAccount.keypair.publicKey,
+  );
+
+  // Distribute funds to each valid winner
+  for (const { creatorId, depositAddress } of validWinners) {
+    const creatorPubKey = new PublicKey(depositAddress);
+    const destinationAccount = await getOrCreateAssociatedTokenAccount(
+      solanaConn,
+      solanaPayer,
+      kinPubKey,
+      creatorPubKey,
+    );
+    const signature = await transfer(
+      solanaConn,
+      solanaPayer,
+      sourceAccount.address,
+      destinationAccount.address,
+      taskSolanaAccount.keypair,
+      quarksPerWinner,
+    );
+    await TaskPayout.insert({
+      tx_signature: signature,
+      task_id: task.id,
+      payee: creatorId,
+      amount_quarks: Number(quarksPerWinner),
+      destination_address: depositAddress,
+    });
+  }
+
+  return `Funds distributed to ${validWinners.length} users: [${validWinners.map((w) => w.creatorId).join(", ")}]`;
+}
+
+export async function returnFunds(task: Task): Promise<string> {
+  // get task deposit address
+  const taskSolanaAccount = await task.getSolanaAccount();
+  if (!taskSolanaAccount) {
+    return "Task has no deposit address";
+  }
+
+  // Get all funders for this task
+  const funders = await TaskFunds.getFundersByTask(task.id);
+  if (!funders || funders.length === 0) {
+    return "No funds to return";
+  }
+
+  // Get task's solana account to transfer from
+  const sourceAccount = await getOrCreateAssociatedTokenAccount(
+    solanaConn,
+    solanaPayer,
+    kinPubKey,
+    taskSolanaAccount.keypair.publicKey,
+  );
+
+  // Return funds to each funder
+  for (const { funderId, amount } of funders) {
+    const funder = await User.getUserById(funderId);
+    if (!funder?.depositAddress) continue;
+
+    const funderPubKey = new PublicKey(funder.depositAddress);
+    const destinationAccount = await getOrCreateAssociatedTokenAccount(
+      solanaConn,
+      solanaPayer,
+      kinPubKey,
+      funderPubKey,
+    );
+
+    const signature = await transfer(
+      solanaConn,
+      solanaPayer,
+      sourceAccount.address,
+      destinationAccount.address,
+      taskSolanaAccount.keypair,
+      amount.toQuarks(),
+    );
+
+    await TaskFundingReturn.insert({
+      tx_signature: signature,
+      task_id: task.id,
+      funder_id: funderId,
+      amount_quarks: Number(amount.toQuarks()),
+      destination_address: funder.depositAddress,
+    });
+  }
+
+  return `Funds returned to ${funders.length} users: [${funders
+    .map((f) => f.funderId)
+    .join(", ")}]`;
 }

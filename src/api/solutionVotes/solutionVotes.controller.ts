@@ -77,8 +77,6 @@ export async function recordSolutionVote(
   const solutionId = req.body.solutionId as Solution["id"];
   const voteCount = req.body.amount;
 
-  // await new Promise((resolve) => setTimeout(resolve, 2000));
-
   try {
     let voteMetrics = await getUserVoteMetrics(solutionId, authUser.id);
     if (!voteMetrics.votingRights || voteMetrics.votingRights < voteCount) {
@@ -114,7 +112,13 @@ export async function recordSolutionVote(
       );
       return handleServiceResponse(serviceResponse, res);
     }
-
+    if (task.status !== "active") {
+      const serviceResponse = ServiceResponse.failure(
+        "Task is not active",
+        null,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
     if (task.kind === "personal" && task.createdBy !== authUser.id) {
       const serviceResponse = ServiceResponse.failure(
         "Cannot vote for a personal task you didn't create",

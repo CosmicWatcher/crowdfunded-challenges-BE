@@ -4,6 +4,7 @@ import express, { Request, Response, Router } from "express";
 import { User } from "@/api/user/user.model";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { handleServiceResponse } from "@/common/utils/helpers";
+import { createAccountOnChain } from "@/common/utils/solana";
 import { supabase } from "@/common/utils/supabase";
 
 export const userRouter: Router = express.Router();
@@ -25,6 +26,8 @@ userRouter.get("/temp-wallet-creator", async (_req: Request, res: Response) => {
         user_id: userId,
       });
       if (error2) throw new Error(JSON.stringify(error2));
+
+      await createAccountOnChain(keypair);
 
       const { error: error3 } = await supabase
         .from(User.TABLE_NAME)

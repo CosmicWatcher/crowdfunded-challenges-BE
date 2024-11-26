@@ -5,7 +5,7 @@ create table public.task_funding (
     amount_fiat real,
     currency text,
     exchange_rate real,
-    amount_quarks bigint,
+    amount_quarks bigint not null default 0,
     destination_address text,
     intent_id text unique,
     funded_at timestamptz not null default CURRENT_TIMESTAMP,
