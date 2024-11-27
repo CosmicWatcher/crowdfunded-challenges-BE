@@ -6,7 +6,7 @@
   "main": "index.ts",
   "private": true,
   "scripts": {
-    "dev": "tsx watch --clear-screen=false src/index.ts | pino-pretty",
+    "dev": "tsx watch --clear-screen=false src/index.ts | pino-pretty --translateTime 'SYS:standard'",
     "build": "tsup",
     "start": "node dist/index.js",
     "clean": "rimraf dist coverage",
@@ -26,7 +26,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "envalid": "^8.0.0",
-    "express": "^4.19.2",
+    "express": "^5.0.1",
     "express-rate-limit": "^7.2.0",
     "helmet": "^7.1.0",
     "http-status-codes": "^2.3.0",

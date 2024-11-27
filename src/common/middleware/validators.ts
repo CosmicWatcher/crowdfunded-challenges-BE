@@ -3,7 +3,10 @@ import { StatusCodes } from "http-status-codes";
 import { ZodError, ZodSchema, z } from "zod";
 
 import { ServiceResponse } from "@/common/models/serviceResponse";
-import { AuthenticatedRequest } from "@/common/types/auth.types";
+import {
+  AuthenticatedRequest,
+  ValidatedQuery,
+} from "@/common/types/custom.types";
 import { getJwtToken, handleServiceResponse } from "@/common/utils/helpers";
 import { supabase } from "@/common/utils/supabase";
 
@@ -30,7 +33,7 @@ export const validateRequest =
         params: req.params,
       });
       req.body = result.body;
-      req.query = result.query;
+      (req as ValidatedQuery).queryParams = result.query;
       req.params = result.params;
       next();
     } catch (err) {

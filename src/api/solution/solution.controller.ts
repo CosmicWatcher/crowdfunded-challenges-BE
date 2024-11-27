@@ -7,7 +7,10 @@ import { getUserJson } from "@/api/user/user.controller";
 import { User } from "@/api/user/user.model";
 import { GET_SOLUTIONS_LIMIT_PER_PAGE } from "@/common/configs/constants";
 import { ServiceResponse } from "@/common/models/serviceResponse";
-import { AuthenticatedRequest } from "@/common/types/auth.types";
+import {
+  AuthenticatedRequest,
+  ValidatedQuery,
+} from "@/common/types/custom.types";
 import { SolutionResponse } from "@/common/types/response.types";
 import {
   getPaginationJson,
@@ -42,12 +45,12 @@ export async function getSolutionList(
   res: Response,
   next: NextFunction,
 ) {
+  const taskId = req.params.id;
+  const page = (req as ValidatedQuery).queryParams.page as number;
+
   const RETURN_COUNT = GET_SOLUTIONS_LIMIT_PER_PAGE;
-  const page = req.query.page as unknown as number;
   const rangeStart = (page - 1) * RETURN_COUNT;
   const rangeEnd = rangeStart + RETURN_COUNT - 1;
-
-  //   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   let userId: User["id"] | null = null;
   try {
@@ -58,7 +61,7 @@ export async function getSolutionList(
 
   try {
     const { solutions, totalRecords } = await Solution.getSolutionsByTaskId(
-      req.params.id,
+      taskId,
       rangeStart,
       rangeEnd,
       false,

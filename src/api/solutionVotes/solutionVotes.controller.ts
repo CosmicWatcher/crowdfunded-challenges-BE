@@ -6,7 +6,7 @@ import { getUserVotingRights } from "@/api/task/task.controller";
 import { getUserJson } from "@/api/user/user.controller";
 import { User } from "@/api/user/user.model";
 import { ServiceResponse } from "@/common/models/serviceResponse";
-import { AuthenticatedRequest } from "@/common/types/auth.types";
+import { AuthenticatedRequest } from "@/common/types/custom.types";
 import {
   SolutionVoteMetrics,
   SolutionVoteResponse,

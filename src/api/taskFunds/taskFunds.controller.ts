@@ -6,7 +6,7 @@ import { getTaskJson } from "@/api/task/task.controller";
 import { Task } from "@/api/task/task.model";
 import { TaskFunds } from "@/api/taskFunds/taskFunds.model";
 import { ServiceResponse } from "@/common/models/serviceResponse";
-import { AuthenticatedRequest } from "@/common/types/auth.types";
+import { AuthenticatedRequest } from "@/common/types/custom.types";
 import { TaskResponse } from "@/common/types/response.types";
 import { handleServiceResponse } from "@/common/utils/helpers";
 import { createAccountOnChain, kinPubKey } from "@/common/utils/solana";

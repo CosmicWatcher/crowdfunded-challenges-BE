@@ -13,7 +13,10 @@ import { getUserJson } from "@/api/user/user.controller";
 import { User } from "@/api/user/user.model";
 import { GET_TASKS_LIMIT_PER_PAGE } from "@/common/configs/constants";
 import { ServiceResponse } from "@/common/models/serviceResponse";
-import { AuthenticatedRequest } from "@/common/types/auth.types";
+import {
+  AuthenticatedRequest,
+  ValidatedQuery,
+} from "@/common/types/custom.types";
 import { TaskResponse } from "@/common/types/response.types";
 import {
   getPaginationJson,
@@ -118,8 +121,9 @@ export async function getTaskList(
   res: Response,
   next: NextFunction,
 ) {
+  const page = (req as ValidatedQuery).queryParams.page as number;
+
   const RETURN_COUNT = GET_TASKS_LIMIT_PER_PAGE;
-  const page = req.query.page as unknown as number;
   const rangeStart = (page - 1) * RETURN_COUNT;
   const rangeEnd = rangeStart + RETURN_COUNT - 1;
   let userId: User["id"] | null = null;
@@ -128,8 +132,6 @@ export async function getTaskList(
   } catch (err) {
     res.locals.err = err;
   }
-
-  // await new Promise((resolve) => setTimeout(resolve, 2000));
 
   try {
     const { tasks, totalRecords } = await Task.getTaskList(
