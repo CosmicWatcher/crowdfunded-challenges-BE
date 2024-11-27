@@ -97,7 +97,7 @@ export async function getTaskById(
       return handleServiceResponse(serviceResponse, res);
     }
 
-    if (!task.solanaAccountId) {
+    if (!task.solanaAccountId && task.status === "active") {
       try {
         const account = await SolanaAccount.getOrCreateAccount();
         task = await task.update({ deposit_address: account.id });
@@ -229,6 +229,7 @@ export function endTask(isSuccessful: boolean) {
 
       task = await task.update({
         status: isSuccessful ? "successful" : "failed",
+        deposit_address: null,
       });
 
       const serviceResponse = ServiceResponse.success(responseMessage, {

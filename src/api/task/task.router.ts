@@ -64,7 +64,6 @@ taskRouter.post(
   validateUser(),
   endTask(false),
 );
-// taskRouter.post("/:id/payout", validateRequest(getTaskSchema), payWinners);
 taskRouter.get("/:id", validateRequest(getTaskSchema), getTaskById);
 // taskRouter.delete(
 //   "/:id",
