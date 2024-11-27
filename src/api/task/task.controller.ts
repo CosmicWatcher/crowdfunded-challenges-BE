@@ -263,6 +263,10 @@ export async function payWinners(task: Task): Promise<string> {
         creatorId: creator.id,
         depositAddress: creator.depositAddress,
       });
+    } else {
+      console.error(
+        `Creator ${creator?.id} has no deposit address for task ${task.id}`,
+      );
     }
   }
   if (validWinners.length === 0) {
@@ -284,33 +288,58 @@ export async function payWinners(task: Task): Promise<string> {
     taskSolanaAccount.keypair.publicKey,
   );
 
-  // Distribute funds to each valid winner
-  for (const { creatorId, depositAddress } of validWinners) {
-    const creatorPubKey = new PublicKey(depositAddress);
-    const destinationAccount = await getOrCreateAssociatedTokenAccount(
-      solanaConn,
-      solanaPayer,
-      kinPubKey,
-      creatorPubKey,
-    );
-    const signature = await transfer(
-      solanaConn,
-      solanaPayer,
-      sourceAccount.address,
-      destinationAccount.address,
-      taskSolanaAccount.keypair,
-      quarksPerWinner,
-    );
-    await TaskPayout.insert({
-      tx_signature: signature,
-      task_id: task.id,
-      payee: creatorId,
-      amount_quarks: Number(quarksPerWinner),
-      destination_address: depositAddress,
-    });
-  }
+  // Distribute funds to each valid winner in parallel
+  const transferPromises = validWinners.map(
+    async ({ creatorId, depositAddress }) => {
+      try {
+        const creatorPubKey = new PublicKey(depositAddress);
+        const destinationAccount = await getOrCreateAssociatedTokenAccount(
+          solanaConn,
+          solanaPayer,
+          kinPubKey,
+          creatorPubKey,
+        );
 
-  return `Funds distributed to ${validWinners.length} users: [${validWinners.map((w) => w.creatorId).join(", ")}]`;
+        const signature = await transfer(
+          solanaConn,
+          solanaPayer,
+          sourceAccount.address,
+          destinationAccount.address,
+          taskSolanaAccount.keypair,
+          quarksPerWinner,
+        );
+
+        return {
+          tx_signature: signature,
+          task_id: task.id,
+          payee: creatorId,
+          amount_quarks: Number(quarksPerWinner),
+          destination_address: depositAddress,
+        };
+      } catch (error) {
+        console.error(
+          `Failed to distribute payout to ${creatorId} for task ${task.id}:`,
+          error,
+        );
+        return null;
+      }
+    },
+  );
+
+  const results = await Promise.all(transferPromises);
+  const successfulTransfers = results.filter((result) => result !== null);
+
+  // Insert successful transfers into TaskPayout
+  await Promise.all(
+    successfulTransfers.map((transfer) => TaskPayout.insert(transfer)),
+  );
+  console.log(
+    `Payouts distributed to ${successfulTransfers.length} users: [${successfulTransfers
+      .map((p) => p.payee)
+      .join(", ")}]`,
+  );
+
+  return `Payouts distributed to ${successfulTransfers.length} users.`;
 }
 
 export async function returnFunds(task: Task): Promise<string> {
@@ -334,38 +363,58 @@ export async function returnFunds(task: Task): Promise<string> {
     taskSolanaAccount.keypair.publicKey,
   );
 
-  // Return funds to each funder
-  for (const { funderId, amount } of funders) {
-    const funder = await User.getUserById(funderId);
-    if (!funder?.depositAddress) continue;
+  // Return funds to each funder in parallel
+  const transferPromises = funders.map(async ({ funderId, amount }) => {
+    try {
+      const funder = await User.getUserById(funderId);
+      if (!funder?.depositAddress)
+        throw new Error("Funder has no deposit address");
 
-    const funderPubKey = new PublicKey(funder.depositAddress);
-    const destinationAccount = await getOrCreateAssociatedTokenAccount(
-      solanaConn,
-      solanaPayer,
-      kinPubKey,
-      funderPubKey,
-    );
+      const funderPubKey = new PublicKey(funder.depositAddress);
+      const destinationAccount = await getOrCreateAssociatedTokenAccount(
+        solanaConn,
+        solanaPayer,
+        kinPubKey,
+        funderPubKey,
+      );
 
-    const signature = await transfer(
-      solanaConn,
-      solanaPayer,
-      sourceAccount.address,
-      destinationAccount.address,
-      taskSolanaAccount.keypair,
-      amount.toQuarks(),
-    );
+      const signature = await transfer(
+        solanaConn,
+        solanaPayer,
+        sourceAccount.address,
+        destinationAccount.address,
+        taskSolanaAccount.keypair,
+        amount.toQuarks(),
+      );
 
-    await TaskFundingReturn.insert({
-      tx_signature: signature,
-      task_id: task.id,
-      funder_id: funderId,
-      amount_quarks: Number(amount.toQuarks()),
-      destination_address: funder.depositAddress,
-    });
-  }
+      return {
+        tx_signature: signature,
+        task_id: task.id,
+        funder_id: funderId,
+        amount_quarks: Number(amount.toQuarks()),
+        destination_address: funder.depositAddress,
+      };
+    } catch (error) {
+      console.error(
+        `Failed to return funds to ${funderId} for task ${task.id}:`,
+        error,
+      );
+      return null;
+    }
+  });
 
-  return `Funds returned to ${funders.length} users: [${funders
-    .map((f) => f.funderId)
-    .join(", ")}]`;
+  const results = await Promise.all(transferPromises);
+  const successfulTransfers = results.filter((result) => result !== null);
+
+  // Insert successful transfers into TaskFundingReturn
+  await Promise.all(
+    successfulTransfers.map((transfer) => TaskFundingReturn.insert(transfer)),
+  );
+  console.log(
+    `Funds returned to ${successfulTransfers.length} users: [${successfulTransfers
+      .map((f) => f.funder_id)
+      .join(", ")}]`,
+  );
+
+  return `Funds returned to ${successfulTransfers.length} users.`;
 }
