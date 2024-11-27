@@ -19,7 +19,7 @@ describe("Error Handler Middleware", () => {
     });
 
     app.use(errorHandler());
-    app.use("*", (_req, res) =>
+    app.use("*anything", (_req, res) =>
       res.status(StatusCodes.NOT_FOUND).send("Not Found"),
     );
   });
