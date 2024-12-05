@@ -5,6 +5,10 @@ import { Tables, TablesUpdate } from "@/common/types/database.types";
 import { getJwtToken } from "@/common/utils/helpers";
 import { supabase } from "@/common/utils/supabase";
 
+export type DepositAddressType = Tables<
+  typeof User.TABLE_NAME
+>["deposit_address_type"];
+
 export class User {
   static readonly TABLE_NAME = "users" as const;
   constructor(private userData: Tables<typeof User.TABLE_NAME>) {}
@@ -17,6 +21,9 @@ export class User {
   }
   get depositAddress() {
     return this.userData.deposit_address;
+  }
+  get depositAddressType() {
+    return this.userData.deposit_address_type;
   }
 
   static async getUserById(id: string) {
@@ -32,6 +39,18 @@ export class User {
     }
 
     return new User(data);
+  }
+
+  static async checkUsernameExists(username: string) {
+    const { data, error } = await supabase
+      .from(User.TABLE_NAME)
+      .select("username")
+      .eq("username", username.toLowerCase())
+      .maybeSingle();
+
+    if (error) throw new Error(JSON.stringify(error));
+
+    return !!data;
   }
 
   async getAuthUserData(): Promise<AuthUser> {
@@ -56,8 +75,11 @@ export class User {
       .update(userData)
       .eq("id", this.id)
       .select()
-      .single();
+      .maybeSingle();
+
     if (error) throw new Error(JSON.stringify(error));
+    if (!data) return this;
+
     this.userData = data;
     return this;
   }

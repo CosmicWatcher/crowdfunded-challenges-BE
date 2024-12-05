@@ -1,7 +1,10 @@
+CREATE TYPE solana_address_type AS ENUM ('solana', 'token');
+
 create table public.users (
     id uuid not null references auth.users on delete cascade,
     username text unique,
     deposit_address text,
+    deposit_address_type solana_address_type not null default 'solana',
 
     primary key (id)
 );
