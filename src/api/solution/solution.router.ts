@@ -33,7 +33,7 @@ const createSolutionSchema = z.object({
     description: z
       .string()
       .min(FORM_LIMITS.TASK_SOLUTION.DESCRIPTION.MIN, {
-        message: `Description must at least ${FORM_LIMITS.TASK_SOLUTION.DESCRIPTION.MIN} characters`,
+        message: `Description must be at least ${FORM_LIMITS.TASK_SOLUTION.DESCRIPTION.MIN} characters`,
       })
       .max(FORM_LIMITS.TASK_SOLUTION.DESCRIPTION.MAX, {
         message: `Description must be less than ${FORM_LIMITS.TASK_SOLUTION.DESCRIPTION.MAX} characters`,

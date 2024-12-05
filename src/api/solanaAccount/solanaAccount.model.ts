@@ -94,8 +94,11 @@ export class SolanaAccount {
       .update(accountData)
       .eq("id", this.id)
       .select()
-      .single();
+      .maybeSingle();
+
     if (error) throw new Error(JSON.stringify(error));
+    if (!data) return this;
+
     this.accountData = data;
     this.keypairObject = this.getKeypairFromPrivateKey(data.private_key);
     return this;

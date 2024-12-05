@@ -124,8 +124,11 @@ export class Task {
       .update(taskData)
       .eq("id", this.id)
       .select()
-      .single();
+      .maybeSingle();
+
     if (error) throw new Error(JSON.stringify(error));
+    if (!data) return this;
+
     this.taskData = data;
     return this;
   }

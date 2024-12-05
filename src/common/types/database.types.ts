@@ -377,16 +377,19 @@ export interface Database {
       users: {
         Row: {
           deposit_address: string | null;
+          deposit_address_type: Database["public"]["Enums"]["solana_address_type"];
           id: string;
           username: string | null;
         };
         Insert: {
           deposit_address?: string | null;
+          deposit_address_type?: Database["public"]["Enums"]["solana_address_type"];
           id: string;
           username?: string | null;
         };
         Update: {
           deposit_address?: string | null;
+          deposit_address_type?: Database["public"]["Enums"]["solana_address_type"];
           id?: string;
           username?: string | null;
         };
@@ -452,6 +455,7 @@ export interface Database {
       [_ in never]: never;
     };
     Enums: {
+      solana_address_type: "solana" | "token";
       task_status: "active" | "successful" | "failed" | "deleted";
       task_type: "community" | "personal";
     };
