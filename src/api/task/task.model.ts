@@ -1,3 +1,5 @@
+import { PostgrestError, PostgrestSingleResponse } from "@supabase/supabase-js";
+
 import { SolanaAccount } from "@/api/solanaAccount/solanaAccount.model";
 import { User } from "@/api/user/user.model";
 import {
@@ -91,24 +93,34 @@ export class Task {
     rangeStart: number,
     rangeEnd: number,
     ascending = false,
+    status?: TaskStatus,
   ): Promise<{ tasks: Task[]; totalRecords: number }> {
-    const status: TaskStatus = "deleted";
+    const statusDeleted: TaskStatus = "deleted";
 
-    const { data, error, count } = await supabase
-      .from(Task.TABLE_NAME)
-      .select("*", { count: "estimated" })
-      .neq("status", status)
-      .order("created_at", { ascending })
-      .range(rangeStart, rangeEnd);
-    if (error) {
-      throw new Error(JSON.stringify(error));
+    let result: PostgrestSingleResponse<Tables<typeof Task.TABLE_NAME>[]>;
+    if (status === undefined) {
+      result = await supabase
+        .from(Task.TABLE_NAME)
+        .select("*", { count: "estimated" })
+        .neq("status", statusDeleted)
+        .order("created_at", { ascending })
+        .range(rangeStart, rangeEnd);
+    } else {
+      result = await supabase
+        .from(Task.TABLE_NAME)
+        .select("*", { count: "estimated" })
+        .eq("status", status)
+        .order("created_at", { ascending })
+        .range(rangeStart, rangeEnd);
     }
+
+    if (result.error) throw new Error(JSON.stringify(result.error));
 
     const tasks: Task[] = [];
-    for (const row of data) {
+    for (const row of result.data) {
       tasks.push(new Task(row));
     }
-    return { tasks, totalRecords: count ?? tasks.length };
+    return { tasks, totalRecords: result.count ?? tasks.length };
   }
 
   static async insert(

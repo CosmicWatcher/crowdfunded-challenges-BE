@@ -7,7 +7,7 @@ import { Solution } from "@/api/solution/solution.model";
 import { SolutionVotes } from "@/api/solutionVotes/solutionVotes.model";
 import { TaskFundingReturn } from "@/api/task/fundReturn.model";
 import { TaskPayout } from "@/api/task/payout.model";
-import { Task } from "@/api/task/task.model";
+import { Task, TaskStatus } from "@/api/task/task.model";
 import { TaskFunds } from "@/api/taskFunds/taskFunds.model";
 import { getUserJson } from "@/api/user/user.controller";
 import { User } from "@/api/user/user.model";
@@ -122,6 +122,10 @@ export async function getTaskList(
   next: NextFunction,
 ) {
   const page = (req as ValidatedQuery).queryParams.page as number;
+  const status = (req as ValidatedQuery).queryParams.status as
+    | TaskStatus
+    | undefined;
+  console.log(status);
 
   const RETURN_COUNT = GET_TASKS_LIMIT_PER_PAGE;
   const rangeStart = (page - 1) * RETURN_COUNT;
@@ -138,6 +142,7 @@ export async function getTaskList(
       rangeStart,
       rangeEnd,
       false,
+      status,
     );
     const pagination = getPaginationJson(totalRecords, page, RETURN_COUNT);
     const returnData: Awaited<ReturnType<typeof getTaskJson>>[] = [];
