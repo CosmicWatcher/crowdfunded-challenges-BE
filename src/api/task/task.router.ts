@@ -7,7 +7,7 @@ import {
   getTaskById,
   getTaskList,
 } from "@/api/task/task.controller";
-import { TaskKind } from "@/api/task/task.model";
+import { TaskKind, TaskStatus } from "@/api/task/task.model";
 import { FORM_LIMITS } from "@/common/configs/constants";
 import {
   commonValidations,
@@ -21,8 +21,16 @@ const getTaskSchema = z.object({
   params: z.object({ id: commonValidations.id }),
 });
 
+const status: z.ZodType<TaskStatus> = z.enum([
+  "active",
+  "successful",
+  "failed",
+]);
 const getTaskListSchema = z.object({
-  query: z.object({ page: commonValidations.page }),
+  query: z.object({
+    page: commonValidations.page,
+    status: status.optional(),
+  }),
 });
 
 const kinds: z.ZodType<TaskKind> = z.enum(["community", "personal"]);
