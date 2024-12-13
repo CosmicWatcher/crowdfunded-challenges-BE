@@ -257,8 +257,9 @@ export function endTask(isSuccessful: boolean) {
         deposit_address: null,
       });
 
-      const serviceResponse = ServiceResponse.success(responseMessage, {
+      const serviceResponse = ServiceResponse.success("Task Has Ended", {
         data: await getTaskJson(task, authUser.id),
+        message: responseMessage,
       });
 
       return handleServiceResponse(serviceResponse, res);
