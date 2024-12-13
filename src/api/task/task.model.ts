@@ -1,4 +1,4 @@
-import { PostgrestError, PostgrestSingleResponse } from "@supabase/supabase-js";
+import { PostgrestSingleResponse } from "@supabase/supabase-js";
 
 import { SolanaAccount } from "@/api/solanaAccount/solanaAccount.model";
 import { User } from "@/api/user/user.model";
@@ -121,6 +121,22 @@ export class Task {
       tasks.push(new Task(row));
     }
     return { tasks, totalRecords: result.count ?? tasks.length };
+  }
+
+  static async getFeaturedTasks(): Promise<Task[]> {
+    const { data, error } = await supabase
+      .from(Task.TABLE_NAME)
+      .select()
+      .limit(5);
+
+    if (error) throw new Error(JSON.stringify(error));
+    if (!data) return [];
+
+    const tasks: Task[] = [];
+    for (const row of data) {
+      tasks.push(new Task(row));
+    }
+    return tasks;
   }
 
   static async insert(

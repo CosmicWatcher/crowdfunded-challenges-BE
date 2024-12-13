@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   createTask,
   endTask,
+  getFeaturedTasks,
   getTaskById,
   getTaskList,
 } from "@/api/task/task.controller";
@@ -60,6 +61,11 @@ const createTaskSchema = z.object({
 });
 
 taskRouter.get("/", validateRequest(getTaskListSchema), getTaskList);
+taskRouter.get(
+  "/featured",
+  validateRequest(getTaskListSchema),
+  getFeaturedTasks,
+);
 taskRouter.post(
   "/:id/success",
   validateRequest(getTaskSchema),
