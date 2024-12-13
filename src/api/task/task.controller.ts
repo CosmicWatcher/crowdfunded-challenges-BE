@@ -125,7 +125,6 @@ export async function getTaskList(
   const status = (req as ValidatedQuery).queryParams.status as
     | TaskStatus
     | undefined;
-  console.log(status);
 
   const RETURN_COUNT = GET_TASKS_LIMIT_PER_PAGE;
   const rangeStart = (page - 1) * RETURN_COUNT;
@@ -165,6 +164,27 @@ export async function getTaskList(
       return handleServiceResponse(serviceResponse, res);
     } else return next(err);
   }
+}
+
+export async function getFeaturedTasks(req: Request, res: Response) {
+  let userId: User["id"] | null = null;
+  try {
+    userId = await User.getIdFromJwt(req);
+  } catch (err) {
+    res.locals.err = err;
+  }
+
+  const featuredTasks = await Task.getFeaturedTasks();
+
+  const returnData: Awaited<ReturnType<typeof getTaskJson>>[] = [];
+  for (const item of featuredTasks) {
+    returnData.push(await getTaskJson(item, userId ?? undefined));
+  }
+
+  const serviceResponse = ServiceResponse.success("Featured Tasks Found", {
+    data: returnData,
+  });
+  return handleServiceResponse(serviceResponse, res);
 }
 
 export async function createTask(
