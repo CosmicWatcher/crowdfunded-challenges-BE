@@ -98,8 +98,6 @@ export async function mockRecordContribution(
       amount_fiat: payload.amount,
     });
 
-    console.log(`Funded task ${taskId} with ${amount} USD. Signature: ${sig}`);
-
     const serviceResponse = ServiceResponse.success<TaskResponse>(
       "Fund Contribution Recorded",
       { data: await getTaskJson(task, authUser.id) },

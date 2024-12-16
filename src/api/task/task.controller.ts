@@ -294,6 +294,7 @@ export async function payWinners(task: Task): Promise<string> {
       });
     } else {
       console.error(
+        new Date().toLocaleString(),
         `Creator ${creator?.id} has no deposit address for task ${task.id}`,
       );
     }
@@ -347,6 +348,7 @@ export async function payWinners(task: Task): Promise<string> {
         };
       } catch (error) {
         console.error(
+          new Date().toLocaleString(),
           `Failed to distribute payout to ${creatorId} for task ${task.id}:`,
           error,
         );
@@ -363,6 +365,7 @@ export async function payWinners(task: Task): Promise<string> {
     successfulTransfers.map((transfer) => TaskPayout.insert(transfer)),
   );
   console.log(
+    new Date().toLocaleString(),
     `Payouts distributed to ${successfulTransfers.length} users: [${successfulTransfers
       .map((p) => p.payee)
       .join(", ")}]`,
@@ -425,6 +428,7 @@ export async function returnFunds(task: Task): Promise<string> {
       };
     } catch (error) {
       console.error(
+        new Date().toLocaleString(),
         `Failed to return funds to ${funderId} for task ${task.id}:`,
         error,
       );
@@ -440,6 +444,7 @@ export async function returnFunds(task: Task): Promise<string> {
     successfulTransfers.map((transfer) => TaskFundingReturn.insert(transfer)),
   );
   console.log(
+    new Date().toLocaleString(),
     `Funds returned to ${successfulTransfers.length} users: [${successfulTransfers
       .map((f) => f.funder_id)
       .join(", ")}]`,
