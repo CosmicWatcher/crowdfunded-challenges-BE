@@ -255,6 +255,7 @@ export function endTask(isSuccessful: boolean) {
       task = await task.update({
         status: isSuccessful ? "successful" : "failed",
         deposit_address: null,
+        ended_at: new Date().toISOString(),
       });
 
       const serviceResponse = ServiceResponse.success("Task Has Ended", {
