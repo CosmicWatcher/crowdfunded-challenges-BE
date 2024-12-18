@@ -1,3 +1,4 @@
+import { Keypair } from "@code-wallet/keys";
 import cors from "cors";
 import express, { type Express } from "express";
 import helmet from "helmet";
@@ -32,14 +33,21 @@ app.use(rateLimiter);
 // Request logging
 app.use(requestLogger);
 
+// This is a JSON file that Code Wallet will look for when verifying our domain. It
+// should be publicly accessible at the root of our domain
+app.get("/.well-known/code-payments.json", (_req, res) => {
+  const verifier = Keypair.fromSecretKey(env.CODE_VERFIER_SECRET);
+  res.json({ public_keys: [verifier.getPublicKey().toBase58()] });
+});
+
 // Routes
-app.use("/health-check", healthCheckRouter);
+app.use("/health", healthCheckRouter);
 app.use("/users", userRouter);
 app.use("/tasks", taskRouter);
 app.use("/solutions", solutionRouter);
 app.use("/solution-votes", solutionVotesRouter);
 app.use("/task-funds", taskFundsRouter);
-app.use("/codewallet", codeWalletRouter);
+app.use("/code-wallet", codeWalletRouter);
 
 // Swagger UI
 app.use(openAPIRouter);

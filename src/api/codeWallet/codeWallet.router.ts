@@ -6,6 +6,11 @@ import express, {
   type Router,
 } from "express";
 
+import {
+  createLoginIntent,
+  getVerifier,
+  verifyLogin,
+} from "@/api/codeWallet/codeWallet.controller";
 import { env } from "@/common/configs/env";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { handleServiceResponse } from "@/common/utils/helpers";
@@ -38,3 +43,7 @@ codeWalletRouter.post(
     }
   },
 );
+
+codeWalletRouter.get("/login/verifier", getVerifier);
+codeWalletRouter.post("/login/create-intent", createLoginIntent);
+codeWalletRouter.get("/login/success/:id", verifyLogin);

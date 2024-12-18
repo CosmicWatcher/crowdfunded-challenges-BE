@@ -33,6 +33,7 @@ export const env = cleanEnv(process.env, {
     choices: ["development", "production", "test"],
   }),
   HOST: host({ devDefault: testOnly("localhost") }),
+  DOMAIN: host(),
   PORT: port({ devDefault: testOnly(3000) }),
   CORS_ORIGIN: json(),
   COMMON_RATE_LIMIT_MAX_REQUESTS: num({ devDefault: testOnly(1000) }),
@@ -44,4 +45,5 @@ export const env = cleanEnv(process.env, {
   SOLANA_PAYER_SECRET: secretKey(),
   SOLANA_RPC: str({ choices: ["devnet", "testnet", "mainnet-beta"] }),
   KIN_MINT_ADDRESS: str(),
+  CODE_VERFIER_SECRET: secretKey(),
 });
