@@ -1,5 +1,7 @@
 create view
-    public.solution_votes_by_task_and_user as
+    public.solution_votes_by_task_and_user
+    with (security_invoker=on)
+    as
 select
     solutions.task_id,
     solution_votes.voted_by,
