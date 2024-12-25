@@ -13,7 +13,6 @@ import { taskFundsRouter } from "@/api/taskFunds/taskFunds.router";
 import { userRouter } from "@/api/user/user.router";
 import { env } from "@/common/configs/env";
 import errorHandler from "@/common/middleware/errorHandler";
-import rateLimiter from "@/common/middleware/rateLimiter";
 import requestLogger from "@/common/middleware/requestLogger";
 
 const logger = pino({ name: "server start" });
@@ -27,7 +26,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(helmet());
-app.use(rateLimiter);
 
 // Request logging
 app.use(requestLogger);
