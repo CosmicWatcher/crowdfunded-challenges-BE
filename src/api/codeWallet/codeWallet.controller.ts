@@ -67,5 +67,6 @@ export async function verifyLogin(req: Request, res: Response) {
     user,
   );
 
-  res.end();
+  const serviceResponse = ServiceResponse.success("Login successful", null);
+  return handleServiceResponse(serviceResponse, res);
 }
