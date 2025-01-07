@@ -2,7 +2,11 @@ import { Kin } from "@code-wallet/currency";
 
 import { Task } from "@/api/task/task.model";
 import { User } from "@/api/user/user.model";
-import { Tables, TablesInsert } from "@/common/types/database.types";
+import {
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+} from "@/common/types/database.types";
 import { supabase } from "@/common/utils/supabase";
 
 export class TaskFunds {
@@ -56,6 +60,19 @@ export class TaskFunds {
     }));
   }
 
+  static async findByIntent(intentId: string): Promise<TaskFunds | null> {
+    const { data, error } = await supabase
+      .from(TaskFunds.TABLE_NAME)
+      .select()
+      .eq("intent_id", intentId)
+      .maybeSingle();
+
+    if (error) throw new Error(JSON.stringify(error));
+    if (!data) return null;
+
+    return new TaskFunds(data);
+  }
+
   static async totalKinByTask(taskId: Task["id"]): Promise<Kin> {
     const { data, error } = await supabase
       .from(TaskFunds.TABLE_NAME)
@@ -105,5 +122,22 @@ export class TaskFunds {
 
     if (error) throw new Error(JSON.stringify(error));
     return new TaskFunds(data);
+  }
+
+  async update(
+    taskFundsData: TablesUpdate<typeof TaskFunds.TABLE_NAME>,
+  ): Promise<TaskFunds> {
+    const { data, error } = await supabase
+      .from(TaskFunds.TABLE_NAME)
+      .update(taskFundsData)
+      .eq("id", this.id)
+      .select()
+      .maybeSingle();
+
+    if (error) throw new Error(JSON.stringify(error));
+    if (!data) return this;
+
+    this.taskFundsData = data;
+    return this;
   }
 }
