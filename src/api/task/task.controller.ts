@@ -155,14 +155,18 @@ export async function getTaskList(
     });
     return handleServiceResponse(serviceResponse, res);
   } catch (err) {
-    const error = JSON.parse(String(err).slice(7));
-    if (error.code == "PGRST103") {
-      const serviceResponse = ServiceResponse.failure(
-        "Requested page is out of range",
-        null,
-      );
-      return handleServiceResponse(serviceResponse, res);
-    } else return next(err);
+    try {
+      const error = JSON.parse(String(err).slice(7));
+      if (error.code == "PGRST103") {
+        const serviceResponse = ServiceResponse.failure(
+          "Requested page is out of range",
+          null,
+        );
+        return handleServiceResponse(serviceResponse, res);
+      } else return next(err);
+    } catch (err) {
+      return next(err);
+    }
   }
 }
 
