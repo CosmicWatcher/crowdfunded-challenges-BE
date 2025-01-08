@@ -43,11 +43,18 @@ export async function createIntent(req: Request, res: Response) {
     return handleServiceResponse(serviceResponse, res);
   }
 
+  const tokenAccount = await getOrCreateAssociatedTokenAccount(
+    solanaConn,
+    solanaPayer,
+    kinPubKey,
+    depositAccount.keypair.publicKey,
+  );
+
   const { clientSecret, id } = await paymentIntents.create({
     mode: "payment",
     amount,
     currency,
-    destination: depositAccount.publicKey,
+    destination: tokenAccount.address.toBase58(),
     webhook: {
       url: `${env.API_URL}/task-funds/record-contribution`,
     },
