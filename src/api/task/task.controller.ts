@@ -289,6 +289,9 @@ export async function payWinners(task: Task): Promise<string> {
     if (validWinners.length >= task.maxWinners) break;
     const creator = await solution.getCreator();
     if (creator?.depositAddress) {
+      await solution.update({
+        is_winner: true,
+      });
       validWinners.push({
         creatorId: creator.id,
         depositAddress: creator.depositAddress,
