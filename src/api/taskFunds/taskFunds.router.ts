@@ -1,4 +1,5 @@
 import { isValidCurrency } from "@code-wallet/currency";
+import bodyParser from "body-parser";
 import express, { Router } from "express";
 import { z } from "zod";
 
@@ -31,4 +32,8 @@ taskFundsRouter.post(
 );
 
 taskFundsRouter.post("/post", validateUser(), mockRecordContribution);
-taskFundsRouter.post("/record-contribution", recordContribution);
+taskFundsRouter.post(
+  "/record-contribution",
+  bodyParser.text({ type: "application/jwt" }),
+  recordContribution,
+);
