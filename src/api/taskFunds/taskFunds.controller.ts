@@ -49,12 +49,13 @@ export async function createIntent(req: Request, res: Response) {
     kinPubKey,
     depositAccount.keypair.publicKey,
   );
+  const destination = tokenAccount.address.toBase58();
 
   const { clientSecret, id } = await paymentIntents.create({
     mode: "payment",
     amount,
     currency,
-    destination: tokenAccount.address.toBase58(),
+    destination,
     webhook: {
       url: `${env.API_URL}/task-funds/record-contribution`,
     },
@@ -66,7 +67,7 @@ export async function createIntent(req: Request, res: Response) {
     intent_id: id,
     amount_fiat: amount,
     currency,
-    destination_address: depositAccount.publicKey,
+    destination_address: destination,
   });
 
   const serviceResponse = ServiceResponse.success("Intent Created", {
@@ -154,32 +155,46 @@ export async function mockRecordContribution(
 }
 
 export async function recordContribution(req: Request, res: Response) {
-  const token: string = req.body.token;
+  const token: string = req.body;
+
+  interface Payload {
+    amount: number;
+    currency: string;
+    destination: string;
+    exchangeRate: number;
+    intent: string;
+    quarks: number;
+    state: string;
+  }
 
   // Verify the JWT token
   const publicKey = env.CODE_SEQUENCER_PUBLIC_KEY;
-  let payloadJSON: unknown;
+  let payloadJSON: Payload;
   try {
-    payloadJSON = await verifyCodeWalletWebhookToken(token, publicKey);
+    payloadJSON = (await verifyCodeWalletWebhookToken(
+      token,
+      publicKey,
+    )) as unknown as Payload;
   } catch (error) {
     console.warn("Error verifying JWT:", error);
     const serviceResponse = ServiceResponse.failure("Invalid token", null);
     return handleServiceResponse(serviceResponse, res);
   }
-  console.log(payloadJSON);
-  res.end();
-  // if (typeof payloadJSON !== "object" || !("intent" in payloadJSON)) {
-  //   const serviceResponse = ServiceResponse.failure("Invalid payload", null);
-  //   return handleServiceResponse(serviceResponse, res);
-  // }
 
-  // const payment = await TaskFunds.findByIntent(payloadJSON.intent);
-  // if (!payment) {
-  //   console.warn("Payment not found");
-  // } else if (payloadJSON.state !== "SUBMITTED") {
-  //   console.warn("Unexpected state:", payloadJSON.state);
-  // } else {
-  //   // Update the payment status and increment the purchase count
-  //   payments.updatePaymentAfterPurchase(payloadJSON.intent);
-  // }
+  const payment = await TaskFunds.findByIntent(payloadJSON.intent);
+  if (!payment) {
+    console.error(`Payment with intent ${payloadJSON.intent} not found`);
+  } else if (payloadJSON.state !== "SUBMITTED") {
+    console.error("Unexpected payment state:", payloadJSON.state);
+  } else {
+    await payment.update({
+      amount_fiat: payloadJSON.amount,
+      currency: payloadJSON.currency,
+      destination_address: payloadJSON.destination,
+      exchange_rate: payloadJSON.exchangeRate,
+      intent_id: payloadJSON.intent,
+      amount_quarks: payloadJSON.quarks,
+      funded_at: new Date().toISOString(),
+    });
+  }
 }
