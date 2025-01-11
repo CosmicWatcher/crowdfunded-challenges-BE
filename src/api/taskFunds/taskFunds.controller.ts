@@ -128,7 +128,7 @@ export async function mockRecordContribution(
       kinPubKey,
       depositAccount.keypair.publicKey,
     );
-    const sig = await mintTo(
+    await mintTo(
       solanaConn,
       solanaPayer,
       kinPubKey,
@@ -186,6 +186,11 @@ export async function recordContribution(req: Request, res: Response) {
     console.error(`Payment with intent ${payloadJSON.intent} not found`);
   } else if (payloadJSON.state !== "SUBMITTED") {
     console.error("Unexpected payment state:", payloadJSON.state);
+    const serviceResponse = ServiceResponse.failure(
+      "Unexpected payment state",
+      null,
+    );
+    return handleServiceResponse(serviceResponse, res);
   } else {
     await payment.update({
       amount_fiat: payloadJSON.amount,
@@ -197,4 +202,7 @@ export async function recordContribution(req: Request, res: Response) {
       funded_at: new Date().toISOString(),
     });
   }
+
+  const serviceResponse = ServiceResponse.success("Payment Recorded", null);
+  return handleServiceResponse(serviceResponse, res);
 }
