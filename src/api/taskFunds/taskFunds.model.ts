@@ -11,7 +11,7 @@ import { supabase } from "@/common/utils/supabase";
 
 export class TaskFunds {
   static readonly TABLE_NAME = "task_funding" as const;
-  static readonly QUARKS_PER_VOTE = 10000n * Kin.quarksPerKin;
+  static readonly KIN_PER_VOTE = 1000;
 
   constructor(private taskFundsData: Tables<typeof TaskFunds.TABLE_NAME>) {}
 
@@ -108,7 +108,7 @@ export class TaskFunds {
     userId: User["id"],
   ): Promise<number> {
     const totalKin = await TaskFunds.totalKinByUser(taskId, userId);
-    return Math.floor(Number(totalKin.toQuarks() / TaskFunds.QUARKS_PER_VOTE));
+    return Math.floor(Number(totalKin.toDecimal() / TaskFunds.KIN_PER_VOTE));
   }
 
   static async insert(
