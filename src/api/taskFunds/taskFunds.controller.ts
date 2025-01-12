@@ -69,7 +69,7 @@ export async function createIntent(req: Request, res: Response) {
     funded_by: authUser.id,
     intent_id: id,
     amount_fiat: amount,
-    currency,
+    currency: currency.toUpperCase(),
     destination_address: destination,
   });
 
