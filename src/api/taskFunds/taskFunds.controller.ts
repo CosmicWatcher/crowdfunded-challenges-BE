@@ -9,7 +9,10 @@ import { TaskFunds } from "@/api/taskFunds/taskFunds.model";
 import { env } from "@/common/configs/env";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/custom.types";
-import { TaskResponse } from "@/common/types/response.types";
+import {
+  CreateIntentResponse,
+  TaskResponse,
+} from "@/common/types/response.types";
 import {
   handleServiceResponse,
   verifyCodeWalletWebhookToken,
@@ -70,9 +73,17 @@ export async function createIntent(req: Request, res: Response) {
     destination_address: destination,
   });
 
-  const serviceResponse = ServiceResponse.success("Intent Created", {
-    data: clientSecret,
-  });
+  const serviceResponse = ServiceResponse.success<CreateIntentResponse>(
+    "Intent Created",
+    {
+      data: {
+        clientSecret,
+        amount,
+        currency,
+        destination,
+      },
+    },
+  );
   return handleServiceResponse(serviceResponse, res);
 }
 
