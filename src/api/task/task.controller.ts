@@ -1,8 +1,4 @@
-import {
-  Account,
-  getOrCreateAssociatedTokenAccount,
-  transfer,
-} from "@solana/spl-token";
+import { getOrCreateAssociatedTokenAccount, transfer } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { NextFunction, Request, Response } from "express";
 
@@ -356,6 +352,11 @@ export async function payWinners(task: Task): Promise<string> {
           destination,
           taskSolanaAccount.keypair,
           quarksPerWinner,
+          undefined,
+          {
+            preflightCommitment: "confirmed",
+            commitment: "confirmed",
+          },
         );
 
         return {
@@ -441,6 +442,11 @@ export async function returnFunds(task: Task): Promise<string> {
         destination,
         taskSolanaAccount.keypair,
         amount.toQuarks(),
+        undefined,
+        {
+          preflightCommitment: "confirmed",
+          commitment: "confirmed",
+        },
       );
 
       return {

@@ -97,8 +97,11 @@ export class TokenAccount {
     public mint: PublicKey,
     public owner: PublicKey,
     public allowOwnerOffCurve = false,
-    public commitment?: Commitment,
-    public confirmOptions?: ConfirmOptions,
+    public commitment: Commitment = "confirmed",
+    public confirmOptions: ConfirmOptions = {
+      preflightCommitment: "confirmed",
+      commitment: "confirmed",
+    },
     public programId = TOKEN_PROGRAM_ID,
     public associatedTokenProgramId = ASSOCIATED_TOKEN_PROGRAM_ID,
   ) {
