@@ -1,6 +1,6 @@
 import { paymentIntents } from "@code-wallet/client";
 import { CurrencyCode, Kin } from "@code-wallet/currency";
-import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
+import { mintTo } from "@solana/spl-token";
 import { NextFunction, Request, Response } from "express";
 
 import { getTaskJson } from "@/api/task/task.controller";
@@ -17,7 +17,11 @@ import {
   handleServiceResponse,
   verifyCodeWalletWebhookToken,
 } from "@/common/utils/helpers";
-import { createAccountOnChain, kinPubKey } from "@/common/utils/solana";
+import {
+  createAccountOnChain,
+  getOrCreateTokenAccount,
+  kinPubKey,
+} from "@/common/utils/solana";
 import { solanaPayer } from "@/common/utils/solana";
 import { solanaConn } from "@/common/utils/solana";
 
@@ -46,7 +50,7 @@ export async function createIntent(req: Request, res: Response) {
     return handleServiceResponse(serviceResponse, res);
   }
 
-  const tokenAccount = await getOrCreateAssociatedTokenAccount(
+  const tokenAccount = await getOrCreateTokenAccount(
     solanaConn,
     solanaPayer,
     kinPubKey,
@@ -133,7 +137,7 @@ export async function mockRecordContribution(
     }
 
     await createAccountOnChain(depositAccount.keypair);
-    const tokenAccount = await getOrCreateAssociatedTokenAccount(
+    const tokenAccount = await getOrCreateTokenAccount(
       solanaConn,
       solanaPayer,
       kinPubKey,

@@ -21,7 +21,6 @@ import {
   SystemProgram,
   Transaction,
   TransactionExpiredBlockheightExceededError,
-  TransactionInstruction,
   clusterApiUrl,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
@@ -70,152 +69,133 @@ export async function createAccountOnChain(newAccount: Keypair) {
 }
 
 /**
- * SPL Token class to retrieve or create an associated token account.
- *
+ * Retrieve or create an associated token account.
  * In case the transaction doesn't get included in a block it retries
- * with progressively higher priority fees
+ * with progressively higher priority fees.
+ *
+ * @param connection               Connection to use
+ * @param payer                    Payer of the transaction and initialization fees
+ * @param mint                     Mint associated with the account to set or verify
+ * @param owner                    Owner of the account to set or verify
+ * @param allowOwnerOffCurve       Allow the owner account to be a PDA (Program Derived Address)
+ * @param commitment               Desired level of commitment for querying the state
+ * @param confirmOptions           Options for confirming the transaction
+ * @param programId                SPL Token program account
+ * @param associatedTokenProgramId SPL Associated Token program account
+ *
+ * @return Address of the new associated token account
  */
-export class TokenAccount {
-  associatedToken: PublicKey;
+export async function getOrCreateTokenAccount(
+  connection: Connection,
+  payer: Signer,
+  mint: PublicKey,
+  owner: PublicKey,
+  allowOwnerOffCurve = false,
+  commitment: Commitment = "confirmed",
+  confirmOptions: ConfirmOptions = {
+    preflightCommitment: "confirmed",
+    commitment: "confirmed",
+  },
+  programId = TOKEN_PROGRAM_ID,
+  associatedTokenProgramId = ASSOCIATED_TOKEN_PROGRAM_ID,
+): Promise<Account> {
+  const associatedToken = getAssociatedTokenAddressSync(
+    mint,
+    owner,
+    allowOwnerOffCurve,
+    programId,
+    associatedTokenProgramId,
+  );
 
-  /**
-   * Constructor
-   *
-   * @param connection               Connection to use
-   * @param payer                    Payer of the transaction and initialization fees
-   * @param mint                     Mint associated with the account to set or verify
-   * @param owner                    Owner of the account to set or verify
-   * @param allowOwnerOffCurve       Allow the owner account to be a PDA (Program Derived Address)
-   * @param commitment               Desired level of commitment for querying the state
-   * @param confirmOptions           Options for confirming the transaction
-   * @param programId                SPL Token program account
-   * @param associatedTokenProgramId SPL Associated Token program account
-   */
-  constructor(
-    public connection: Connection,
-    public payer: Signer,
-    public mint: PublicKey,
-    public owner: PublicKey,
-    public allowOwnerOffCurve = false,
-    public commitment: Commitment = "confirmed",
-    public confirmOptions: ConfirmOptions = {
-      preflightCommitment: "confirmed",
-      commitment: "confirmed",
-    },
-    public programId = TOKEN_PROGRAM_ID,
-    public associatedTokenProgramId = ASSOCIATED_TOKEN_PROGRAM_ID,
-  ) {
-    this.associatedToken = getAssociatedTokenAddressSync(
-      this.mint,
-      this.owner,
-      this.allowOwnerOffCurve,
-      this.programId,
-      this.associatedTokenProgramId,
+  let account: Account;
+  try {
+    account = await getAccount(
+      connection,
+      associatedToken,
+      commitment,
+      programId,
     );
-  }
+  } catch (error: unknown) {
+    if (
+      error instanceof TokenAccountNotFoundError ||
+      error instanceof TokenInvalidAccountOwnerError
+    ) {
+      const instruction = createAssociatedTokenAccountInstruction(
+        payer.publicKey,
+        associatedToken,
+        owner,
+        mint,
+        programId,
+        associatedTokenProgramId,
+      );
 
-  async getAccount() {
-    return await getAccount(
-      this.connection,
-      this.associatedToken,
-      this.commitment,
-      this.programId,
-    );
-  }
+      try {
+        const transaction = new Transaction().add(instruction);
+        await sendAndConfirmTransaction(
+          connection,
+          transaction,
+          [payer],
+          confirmOptions,
+        );
+      } catch (error: unknown) {
+        if (error instanceof TransactionExpiredBlockheightExceededError) {
+          const baseFee = 10000;
+          const maxFee = Math.pow(10, 7);
+          let attempt = 0;
 
-  /**
-   * Retrieve the associated token account, or create it if it doesn't exist
-   *
-   * In case the transaction doesn't get included in a block it retries
-   * with progressively higher priority fees
-   *
-   * @return Address of the new associated token account
-   */
-  async getOrCreateAccount() {
-    let account: Account;
-    try {
-      account = await this.getAccount();
-    } catch (error: unknown) {
-      if (
-        error instanceof TokenAccountNotFoundError ||
-        error instanceof TokenInvalidAccountOwnerError
-      ) {
-        const instruction = this.createInstruction();
-        try {
-          const transaction = new Transaction().add(instruction);
-          await this.sendTransaction(transaction);
-        } catch (error: unknown) {
-          if (error instanceof TransactionExpiredBlockheightExceededError) {
-            const baseFee = 10000;
-            const maxFee = Math.pow(10, 7);
-            let attempt = 0;
-
-            while (true) {
-              const priorityFee = Math.floor(
-                100000 * attempt * attempt + baseFee,
+          while (true) {
+            const priorityFee = Math.floor(
+              100000 * attempt * attempt + baseFee,
+            );
+            try {
+              console.log(
+                `[${new Date().toLocaleString()}] Trying with priority fee ${priorityFee}`,
               );
-              try {
-                console.log(`Trying with priority fee ${priorityFee}`);
-                await this.tryWithPriorityFee(instruction, priorityFee);
-                break;
-              } catch (retryError) {
-                if (
-                  !(
-                    retryError instanceof
-                    TransactionExpiredBlockheightExceededError
-                  )
-                ) {
-                  throw retryError;
-                }
-                attempt++;
-                if (priorityFee > maxFee) {
-                  throw retryError;
-                }
+              const priorityFeeInstruction =
+                ComputeBudgetProgram.setComputeUnitPrice({
+                  microLamports: priorityFee,
+                });
+              const transaction = new Transaction()
+                .add(instruction)
+                .add(priorityFeeInstruction);
+              await sendAndConfirmTransaction(
+                connection,
+                transaction,
+                [payer],
+                confirmOptions,
+              );
+              break;
+            } catch (retryError) {
+              if (
+                !(
+                  retryError instanceof
+                  TransactionExpiredBlockheightExceededError
+                )
+              ) {
+                throw retryError;
+              }
+              attempt++;
+              if (priorityFee > maxFee) {
+                throw retryError;
               }
             }
           }
         }
-
-        account = await this.getAccount();
-      } else {
-        throw error;
       }
+
+      account = await getAccount(
+        connection,
+        associatedToken,
+        commitment,
+        programId,
+      );
+    } else {
+      throw error;
     }
-
-    if (!account.mint.equals(this.mint)) throw new TokenInvalidMintError();
-    if (!account.owner.equals(this.owner)) throw new TokenInvalidOwnerError();
-
-    return account;
   }
 
-  private async tryWithPriorityFee(
-    instruction: TransactionInstruction,
-    microLamports: number,
-  ) {
-    const priorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-      microLamports,
-    });
-    const transaction = new Transaction().add(instruction).add(priorityFee);
-    await this.sendTransaction(transaction);
-  }
+  if (!account.mint.equals(mint)) throw new TokenInvalidMintError();
+  if (!account.owner.equals(owner)) throw new TokenInvalidOwnerError();
 
-  private createInstruction() {
-    return createAssociatedTokenAccountInstruction(
-      this.payer.publicKey,
-      this.associatedToken,
-      this.owner,
-      this.mint,
-      this.programId,
-      this.associatedTokenProgramId,
-    );
-  }
-
-  private async sendTransaction(transaction: Transaction) {
-    await sendAndConfirmTransaction(
-      this.connection,
-      transaction,
-      [this.payer],
-      this.confirmOptions,
-    );
-  }
+  return account;
 }

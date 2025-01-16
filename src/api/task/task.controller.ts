@@ -1,4 +1,4 @@
-import { getOrCreateAssociatedTokenAccount, transfer } from "@solana/spl-token";
+import { transfer } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { NextFunction, Request, Response } from "express";
 
@@ -23,7 +23,7 @@ import {
   handleServiceResponse,
 } from "@/common/utils/helpers";
 import {
-  TokenAccount,
+  getOrCreateTokenAccount,
   kinPubKey,
   solanaConn,
   solanaPayer,
@@ -321,7 +321,7 @@ export async function payWinners(task: Task): Promise<string> {
   const quarksPerWinner = kinPerWinner.toQuarks();
 
   // Get task's solana account to transfer from
-  const sourceAccount = await getOrCreateAssociatedTokenAccount(
+  const sourceAccount = await getOrCreateTokenAccount(
     solanaConn,
     solanaPayer,
     kinPubKey,
@@ -334,12 +334,12 @@ export async function payWinners(task: Task): Promise<string> {
       try {
         let destination: PublicKey;
         if (depositAddressType === "solana") {
-          const destinationAccount = await new TokenAccount(
+          const destinationAccount = await getOrCreateTokenAccount(
             solanaConn,
             solanaPayer,
             kinPubKey,
             new PublicKey(depositAddress),
-          ).getOrCreateAccount();
+          );
           destination = destinationAccount.address;
         } else {
           destination = new PublicKey(depositAddress);
@@ -408,7 +408,7 @@ export async function returnFunds(task: Task): Promise<string> {
   }
 
   // Get task's solana account to transfer from
-  const sourceAccount = await getOrCreateAssociatedTokenAccount(
+  const sourceAccount = await getOrCreateTokenAccount(
     solanaConn,
     solanaPayer,
     kinPubKey,
@@ -424,12 +424,12 @@ export async function returnFunds(task: Task): Promise<string> {
 
       let destination: PublicKey;
       if (funder.depositAddressType === "solana") {
-        const destinationAccount = await new TokenAccount(
+        const destinationAccount = await getOrCreateTokenAccount(
           solanaConn,
           solanaPayer,
           kinPubKey,
           new PublicKey(funder.depositAddress),
-        ).getOrCreateAccount();
+        );
         destination = destinationAccount.address;
       } else {
         destination = new PublicKey(funder.depositAddress);
