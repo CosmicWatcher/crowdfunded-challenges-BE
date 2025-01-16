@@ -2,7 +2,6 @@ import dotenv from "dotenv";
 import {
   EnvError,
   cleanEnv,
-  host,
   json,
   makeExactValidator,
   num,
@@ -32,7 +31,7 @@ export const env = cleanEnv(process.env, {
     devDefault: testOnly("test"),
     choices: ["development", "production", "test"],
   }),
-  HOST: host({ devDefault: testOnly("localhost") }),
+  API_URL: url(),
   PORT: port({ devDefault: testOnly(3000) }),
   CORS_ORIGIN: json(),
   COMMON_RATE_LIMIT_MAX_REQUESTS: num({ devDefault: testOnly(1000) }),
@@ -40,8 +39,9 @@ export const env = cleanEnv(process.env, {
   SUPABASE_ANON_KEY: str(),
   SUPABASE_SERVICE_ROLE_KEY: str(),
   SUPABASE_URL: url(),
+  KIN_MINT_ADDRESS: str(),
   KIN_DESTINATION: str(),
   SOLANA_PAYER_SECRET: secretKey(),
   SOLANA_RPC: str({ choices: ["devnet", "testnet", "mainnet-beta"] }),
-  KIN_MINT_ADDRESS: str(),
+  CODE_SEQUENCER_PUBLIC_KEY: str(),
 });
