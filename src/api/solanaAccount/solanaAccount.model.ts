@@ -3,8 +3,8 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 import { Task } from "@/api/task/task.model";
 import { Tables, TablesUpdate } from "@/common/types/database.types";
 import {
-  TokenAccount,
   createAccountOnChain,
+  getOrCreateTokenAccount,
   kinPubKey,
   solanaConn,
   solanaPayer,
@@ -94,12 +94,12 @@ export class SolanaAccount {
     if (error) throw new Error(JSON.stringify(error));
 
     await createAccountOnChain(keypair);
-    await new TokenAccount(
+    await getOrCreateTokenAccount(
       solanaConn,
       solanaPayer,
       kinPubKey,
       new PublicKey(data.public_key),
-    ).getOrCreateAccount();
+    );
 
     return new SolanaAccount(data);
   }
