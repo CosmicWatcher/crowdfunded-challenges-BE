@@ -7,6 +7,7 @@ import {
   TokenInvalidMintError,
   TokenInvalidOwnerError,
   createAssociatedTokenAccountInstruction,
+  createTransferInstruction,
   getAccount,
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
@@ -21,6 +22,8 @@ import {
   SystemProgram,
   Transaction,
   TransactionExpiredBlockheightExceededError,
+  TransactionInstruction,
+  TransactionSignature,
   clusterApiUrl,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
@@ -130,56 +133,21 @@ export async function getOrCreateTokenAccount(
       );
 
       try {
-        const transaction = new Transaction().add(instruction);
         await sendAndConfirmTransaction(
           connection,
-          transaction,
+          new Transaction().add(instruction),
           [payer],
           confirmOptions,
         );
       } catch (error: unknown) {
         if (error instanceof TransactionExpiredBlockheightExceededError) {
-          const baseFee = 10000;
-          const maxFee = Math.pow(10, 7);
-          let attempt = 0;
-
-          while (true) {
-            const priorityFee = Math.floor(
-              100000 * attempt * attempt + baseFee,
-            );
-            try {
-              console.log(
-                `[${new Date().toLocaleString()}] Trying with priority fee ${priorityFee}`,
-              );
-              const priorityFeeInstruction =
-                ComputeBudgetProgram.setComputeUnitPrice({
-                  microLamports: priorityFee,
-                });
-              const transaction = new Transaction()
-                .add(instruction)
-                .add(priorityFeeInstruction);
-              await sendAndConfirmTransaction(
-                connection,
-                transaction,
-                [payer],
-                confirmOptions,
-              );
-              break;
-            } catch (retryError) {
-              if (
-                !(
-                  retryError instanceof
-                  TransactionExpiredBlockheightExceededError
-                )
-              ) {
-                throw retryError;
-              }
-              attempt++;
-              if (priorityFee > maxFee) {
-                throw retryError;
-              }
-            }
-          }
+          await tryTransactionWithPriorityFee(
+            connection,
+            payer,
+            confirmOptions,
+            instruction,
+            error.signature,
+          );
         }
       }
 
@@ -198,4 +166,142 @@ export async function getOrCreateTokenAccount(
   if (!account.owner.equals(owner)) throw new TokenInvalidOwnerError();
 
   return account;
+}
+
+/**
+ * Transfer tokens from one account to another
+ *
+ * @param connection     Connection to use
+ * @param payer          Payer of the transaction fees
+ * @param source         Source account
+ * @param destination    Destination account
+ * @param owner          Owner of the source account
+ * @param amount         Number of tokens to transfer
+ * @param multiSigners   Signing accounts if `owner` is a multisig
+ * @param confirmOptions Options for confirming the transaction
+ * @param programId      SPL Token program account
+ *
+ * @return Signature of the confirmed transaction
+ */
+export async function transferToken(
+  connection: Connection,
+  payer: Signer,
+  source: PublicKey,
+  destination: PublicKey,
+  owner: Signer | PublicKey,
+  amount: number | bigint,
+  multiSigners: Signer[] = [],
+  confirmOptions: ConfirmOptions = {
+    preflightCommitment: "confirmed",
+    commitment: "confirmed",
+  },
+  programId = TOKEN_PROGRAM_ID,
+): Promise<TransactionSignature> {
+  const [ownerPublicKey, signers] =
+    owner instanceof PublicKey
+      ? [owner, multiSigners]
+      : [owner.publicKey, [owner]];
+
+  const instruction = createTransferInstruction(
+    source,
+    destination,
+    ownerPublicKey,
+    amount,
+    multiSigners,
+    programId,
+  );
+
+  try {
+    return await sendAndConfirmTransaction(
+      connection,
+      new Transaction().add(instruction),
+      [payer, ...signers],
+      confirmOptions,
+    );
+  } catch (error: unknown) {
+    if (!(error instanceof TransactionExpiredBlockheightExceededError)) {
+      throw error;
+    }
+
+    return await tryTransactionWithPriorityFee(
+      connection,
+      payer,
+      confirmOptions,
+      instruction,
+      error.signature,
+    );
+  }
+}
+
+/**
+ * Try the transaction with progressively higher priority fees
+ * in case it doesn't get included in a block.
+ *
+ * @param connection               Connection to use
+ * @param payer                    Payer of the transaction and initialization fees
+ * @param confirmOptions           Options for confirming the transaction
+ * @param instruction              Transaction instruction to execute
+ * @param signature                Signature of the transaction to check status of before trying with priority fee
+ *
+ * @return Signature of the confirmed transaction
+ */
+async function tryTransactionWithPriorityFee(
+  connection: Connection,
+  payer: Signer,
+  confirmOptions: ConfirmOptions,
+  instruction: TransactionInstruction,
+  signature?: TransactionSignature,
+): Promise<TransactionSignature> {
+  const baseFee = 10000;
+  const maxFee = Math.pow(10, 7);
+  let attempt = 0;
+
+  while (true) {
+    if (signature) {
+      // wait a bit then check if the transaction was actually confirmed
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const status = await solanaConn.getSignatureStatus(signature, {
+        searchTransactionHistory: true,
+      });
+
+      if (
+        status?.value?.confirmationStatus === "confirmed" ||
+        status?.value?.confirmationStatus === "finalized"
+      ) {
+        return signature;
+      }
+    }
+
+    const priorityFee = Math.floor(100000 * attempt * attempt + baseFee);
+
+    try {
+      console.log(
+        `[${new Date().toLocaleString()}] Trying with priority fee ${priorityFee}`,
+      );
+
+      const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: priorityFee,
+      });
+      const transaction = new Transaction()
+        .add(instruction)
+        .add(priorityFeeInstruction);
+
+      return await sendAndConfirmTransaction(
+        connection,
+        transaction,
+        [payer],
+        confirmOptions,
+      );
+    } catch (error: unknown) {
+      if (
+        !(error instanceof TransactionExpiredBlockheightExceededError) ||
+        priorityFee > maxFee
+      ) {
+        throw error;
+      }
+
+      attempt++;
+      signature = error.signature;
+    }
+  }
 }

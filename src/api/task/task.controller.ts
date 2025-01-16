@@ -1,4 +1,3 @@
-import { transfer } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { NextFunction, Request, Response } from "express";
 
@@ -27,6 +26,7 @@ import {
   kinPubKey,
   solanaConn,
   solanaPayer,
+  transferToken,
 } from "@/common/utils/solana";
 
 export async function getTaskJson(
@@ -345,18 +345,13 @@ export async function payWinners(task: Task): Promise<string> {
           destination = new PublicKey(depositAddress);
         }
 
-        const signature = await transfer(
+        const signature = await transferToken(
           solanaConn,
           solanaPayer,
           sourceAccount.address,
           destination,
           taskSolanaAccount.keypair,
           quarksPerWinner,
-          undefined,
-          {
-            preflightCommitment: "confirmed",
-            commitment: "confirmed",
-          },
         );
 
         return {
@@ -435,18 +430,13 @@ export async function returnFunds(task: Task): Promise<string> {
         destination = new PublicKey(funder.depositAddress);
       }
 
-      const signature = await transfer(
+      const signature = await transferToken(
         solanaConn,
         solanaPayer,
         sourceAccount.address,
         destination,
         taskSolanaAccount.keypair,
         amount.toQuarks(),
-        undefined,
-        {
-          preflightCommitment: "confirmed",
-          commitment: "confirmed",
-        },
       );
 
       return {
