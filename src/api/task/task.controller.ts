@@ -1,4 +1,3 @@
-import { getOrCreateAssociatedTokenAccount, transfer } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { NextFunction, Request, Response } from "express";
 
@@ -22,7 +21,13 @@ import {
   getPaginationJson,
   handleServiceResponse,
 } from "@/common/utils/helpers";
-import { kinPubKey, solanaConn, solanaPayer } from "@/common/utils/solana";
+import {
+  getOrCreateTokenAccount,
+  kinPubKey,
+  solanaConn,
+  solanaPayer,
+  transferToken,
+} from "@/common/utils/solana";
 
 export async function getTaskJson(
   task: Task,
@@ -155,14 +160,18 @@ export async function getTaskList(
     });
     return handleServiceResponse(serviceResponse, res);
   } catch (err) {
-    const error = JSON.parse(String(err).slice(7));
-    if (error.code == "PGRST103") {
-      const serviceResponse = ServiceResponse.failure(
-        "Requested page is out of range",
-        null,
-      );
-      return handleServiceResponse(serviceResponse, res);
-    } else return next(err);
+    try {
+      const error = JSON.parse(String(err).slice(7));
+      if (error.code == "PGRST103") {
+        const serviceResponse = ServiceResponse.failure(
+          "Requested page is out of range",
+          null,
+        );
+        return handleServiceResponse(serviceResponse, res);
+      } else return next(err);
+    } catch (err) {
+      return next(err);
+    }
   }
 }
 
@@ -295,6 +304,7 @@ export async function payWinners(task: Task): Promise<string> {
       validWinners.push({
         creatorId: creator.id,
         depositAddress: creator.depositAddress,
+        depositAddressType: creator.depositAddressType,
       });
     } else {
       console.error(
@@ -315,7 +325,7 @@ export async function payWinners(task: Task): Promise<string> {
   const quarksPerWinner = kinPerWinner.toQuarks();
 
   // Get task's solana account to transfer from
-  const sourceAccount = await getOrCreateAssociatedTokenAccount(
+  const sourceAccount = await getOrCreateTokenAccount(
     solanaConn,
     solanaPayer,
     kinPubKey,
@@ -324,21 +334,26 @@ export async function payWinners(task: Task): Promise<string> {
 
   // Distribute funds to each valid winner in parallel
   const transferPromises = validWinners.map(
-    async ({ creatorId, depositAddress }) => {
+    async ({ creatorId, depositAddress, depositAddressType }) => {
       try {
-        const creatorPubKey = new PublicKey(depositAddress);
-        const destinationAccount = await getOrCreateAssociatedTokenAccount(
-          solanaConn,
-          solanaPayer,
-          kinPubKey,
-          creatorPubKey,
-        );
+        let destination: PublicKey;
+        if (depositAddressType === "solana") {
+          const destinationAccount = await getOrCreateTokenAccount(
+            solanaConn,
+            solanaPayer,
+            kinPubKey,
+            new PublicKey(depositAddress),
+          );
+          destination = destinationAccount.address;
+        } else {
+          destination = new PublicKey(depositAddress);
+        }
 
-        const signature = await transfer(
+        const signature = await transferToken(
           solanaConn,
           solanaPayer,
           sourceAccount.address,
-          destinationAccount.address,
+          destination,
           taskSolanaAccount.keypair,
           quarksPerWinner,
         );
@@ -348,7 +363,7 @@ export async function payWinners(task: Task): Promise<string> {
           task_id: task.id,
           payee: creatorId,
           amount_quarks: Number(quarksPerWinner),
-          destination_address: depositAddress,
+          destination_address: destination.toBase58(),
         };
       } catch (error) {
         console.error(
@@ -392,7 +407,7 @@ export async function returnFunds(task: Task): Promise<string> {
   }
 
   // Get task's solana account to transfer from
-  const sourceAccount = await getOrCreateAssociatedTokenAccount(
+  const sourceAccount = await getOrCreateTokenAccount(
     solanaConn,
     solanaPayer,
     kinPubKey,
@@ -406,19 +421,24 @@ export async function returnFunds(task: Task): Promise<string> {
       if (!funder?.depositAddress)
         throw new Error("Funder has no deposit address");
 
-      const funderPubKey = new PublicKey(funder.depositAddress);
-      const destinationAccount = await getOrCreateAssociatedTokenAccount(
-        solanaConn,
-        solanaPayer,
-        kinPubKey,
-        funderPubKey,
-      );
+      let destination: PublicKey;
+      if (funder.depositAddressType === "solana") {
+        const destinationAccount = await getOrCreateTokenAccount(
+          solanaConn,
+          solanaPayer,
+          kinPubKey,
+          new PublicKey(funder.depositAddress),
+        );
+        destination = destinationAccount.address;
+      } else {
+        destination = new PublicKey(funder.depositAddress);
+      }
 
-      const signature = await transfer(
+      const signature = await transferToken(
         solanaConn,
         solanaPayer,
         sourceAccount.address,
-        destinationAccount.address,
+        destination,
         taskSolanaAccount.keypair,
         amount.toQuarks(),
       );
@@ -428,7 +448,7 @@ export async function returnFunds(task: Task): Promise<string> {
         task_id: task.id,
         funder_id: funderId,
         amount_quarks: Number(amount.toQuarks()),
-        destination_address: funder.depositAddress,
+        destination_address: destination.toBase58(),
       };
     } catch (error) {
       console.error(
