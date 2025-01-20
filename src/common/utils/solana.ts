@@ -29,10 +29,26 @@ import {
 } from "@solana/web3.js";
 
 import { env } from "@/common/configs/env";
+import { SolanaAddressType } from "@/common/types/custom.types";
 
 export const solanaPayer = Keypair.fromSecretKey(env.SOLANA_PAYER_SECRET);
 export const kinPubKey = new PublicKey(env.KIN_MINT_ADDRESS);
 export const solanaConn = new Connection(clusterApiUrl(env.SOLANA_RPC));
+
+export async function getSolanaAddressType(
+  address: string,
+): Promise<SolanaAddressType | null> {
+  const accountInfo = await solanaConn.getAccountInfo(new PublicKey(address));
+
+  if (accountInfo === null) {
+    return null;
+  }
+  if (accountInfo.owner.toBase58() === SystemProgram.programId.toBase58()) {
+    return "solana";
+  } else {
+    return "token";
+  }
+}
 
 export async function createAccountOnChain(newAccount: Keypair) {
   const space = 0;
