@@ -131,6 +131,7 @@ export class Task {
     const { data, error } = await supabase
       .from(Task.TABLE_NAME)
       .select()
+      .eq("status", "active")
       .limit(5);
 
     if (error) throw new Error(JSON.stringify(error));
