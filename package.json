@@ -50,7 +50,6 @@
     "pino-pretty": "^11.0.0",
     "prettier": "3.3.3",
     "rimraf": "^6.0.0",
-    "supabase": "^1.192.5",
     "supertest": "^7.0.0",
     "tsup": "^8.3.0",
     "tsx": "^4.7.2",
