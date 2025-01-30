@@ -1,5 +1,5 @@
 CREATE TYPE task_type AS ENUM ('community', 'personal');
-CREATE TYPE task_status AS ENUM ('active', 'successful', 'failed', 'deleted');
+CREATE TYPE task_status AS ENUM ('active', 'ended', 'successful', 'failed', 'deleted');
 
 create table public.tasks (
     id uuid default gen_random_uuid(),
