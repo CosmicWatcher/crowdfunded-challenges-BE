@@ -10,7 +10,11 @@ import { Task, TaskStatus } from "@/api/task/task.model";
 import { TaskFunds } from "@/api/taskFunds/taskFunds.model";
 import { getUserJson } from "@/api/user/user.controller";
 import { User } from "@/api/user/user.model";
-import { GET_TASKS_LIMIT_PER_PAGE } from "@/common/configs/constants";
+import {
+  CRON_USER_ID,
+  GET_TASKS_LIMIT_PER_PAGE,
+  TASK_SETTLEMENT_TIMEOUT_MS,
+} from "@/common/configs/constants";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import {
   AuthenticatedRequest,
@@ -196,11 +200,7 @@ export async function getFeaturedTasks(req: Request, res: Response) {
   return handleServiceResponse(serviceResponse, res);
 }
 
-export async function createTask(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
+export async function createTask(req: Request, res: Response) {
   const authUser = (req as AuthenticatedRequest).authUser;
 
   let account: SolanaAccount | null = null;
@@ -210,72 +210,158 @@ export async function createTask(
     // just log the error because it's not critical
     res.locals.err = error;
   }
-  try {
-    await Task.insert({
-      created_by: authUser.id,
-      kind: req.body.kind,
-      title: req.body.title,
-      details: req.body.description,
-      max_winners: req.body.maxWinners,
-      deposit_address: account ? account.id : null,
-    });
 
-    const serviceResponse = ServiceResponse.success("Task Created", null);
-    return handleServiceResponse(serviceResponse, res);
-  } catch (err) {
-    next(err);
-  }
+  const endedAtDate = new Date(req.body.endedAt as string);
+  const createdAt = new Date();
+  createdAt.setHours(endedAtDate.getHours());
+  createdAt.setMinutes(endedAtDate.getMinutes());
+  createdAt.setSeconds(endedAtDate.getSeconds());
+  createdAt.setMilliseconds(endedAtDate.getMilliseconds());
+
+  await Task.insert({
+    created_by: authUser.id,
+    kind: req.body.kind,
+    title: req.body.title,
+    details: req.body.description,
+    max_winners: req.body.maxWinners,
+    deposit_address: account ? account.id : null,
+    ended_at: req.body.endedAt,
+    created_at: createdAt.toISOString(),
+  });
+
+  const serviceResponse = ServiceResponse.success("Task Created", null);
+  return handleServiceResponse(serviceResponse, res);
 }
 
-export function endTask(isSuccessful: boolean) {
-  return async (req: Request, res: Response, next: NextFunction) => {
+export async function endTask(req: Request, res: Response) {
+  const taskId = req.params.id;
+
+  const task = await Task.getTaskById(taskId);
+  if (!task) {
+    const serviceResponse = ServiceResponse.failure("Task not Found", null);
+    return handleServiceResponse(serviceResponse, res);
+  }
+  if (task.status !== "active") {
+    const serviceResponse = ServiceResponse.failure("Task is not active", null);
+    return handleServiceResponse(serviceResponse, res);
+  }
+
+  const currentTime = new Date();
+  const endedAt = task.endedAt ? new Date(task.endedAt) : null;
+  if (!endedAt || currentTime < endedAt) {
+    const serviceResponse = ServiceResponse.failure(
+      "Task has not ended yet",
+      null,
+    );
+    return handleServiceResponse(serviceResponse, res);
+  }
+
+  await task.update({
+    status: "ended",
+  });
+
+  const serviceResponse = ServiceResponse.success("Task has been ended", null);
+  return handleServiceResponse(serviceResponse, res);
+}
+
+export function settleTask(isSuccessful: boolean) {
+  return async (req: Request, res: Response) => {
     const taskId = req.params.id;
     const authUser = (req as AuthenticatedRequest).authUser;
+    const isCron = authUser?.id === CRON_USER_ID;
 
-    try {
-      let task = await Task.getTaskById(taskId);
-      if (!task) {
-        const serviceResponse = ServiceResponse.failure("Task not Found", null);
-        return handleServiceResponse(serviceResponse, res);
-      }
-      if (task.status !== "active") {
-        const serviceResponse = ServiceResponse.failure(
-          "Task is not in active status",
-          null,
-        );
-        return handleServiceResponse(serviceResponse, res);
-      }
-
-      if (task.createdBy !== authUser.id) {
-        const serviceResponse = ServiceResponse.failure(
-          "Only the task creator can end the task",
-          null,
-        );
-        return handleServiceResponse(serviceResponse, res);
-      }
-
-      let responseMessage: string;
-      if (isSuccessful) {
-        responseMessage = await payWinners(task);
-      } else {
-        responseMessage = await returnFunds(task);
-      }
-
-      task = await task.update({
-        status: isSuccessful ? "successful" : "failed",
-        deposit_address: null,
-        ended_at: new Date().toISOString(),
-      });
-
-      const serviceResponse = ServiceResponse.success("Task Has Ended", {
-        data: await getTaskJson(task, authUser.id),
-        message: responseMessage,
-      });
-
+    let task = await Task.getTaskById(taskId);
+    if (!task) {
+      const serviceResponse = ServiceResponse.failure("Task not Found", null);
       return handleServiceResponse(serviceResponse, res);
-    } catch (e) {
-      next(e);
     }
+
+    // Check if task is already settled
+    if (task.status === "successful" || task.status === "failed") {
+      const serviceResponse = ServiceResponse.failure(
+        "Task has already been settled",
+        null,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
+
+    // Check if task is deleted
+    if (task.status === "deleted") {
+      const serviceResponse = ServiceResponse.failure(
+        "Cannot settle a deleted task",
+        null,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
+
+    const currentTime = new Date();
+    const endedAt = task.endedAt ? new Date(task.endedAt) : null;
+
+    // Handle active tasks
+    if (task.status === "active") {
+      if (!endedAt) {
+        const serviceResponse = ServiceResponse.failure(
+          "Task has no end date set",
+          null,
+        );
+        return handleServiceResponse(serviceResponse, res);
+      }
+
+      if (currentTime < endedAt) {
+        const serviceResponse = ServiceResponse.failure(
+          "Task has not ended yet",
+          null,
+        );
+        return handleServiceResponse(serviceResponse, res);
+      }
+
+      // Update to ended status if past end date
+      if (currentTime > endedAt) {
+        await task.update({
+          status: "ended",
+        });
+      }
+    }
+
+    // Verify task creator
+    if (task.createdBy !== authUser.id && !isCron) {
+      const serviceResponse = ServiceResponse.failure(
+        "Only the task creator can settle the task",
+        null,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
+
+    // if the task creator has not settled the task within the settlement timeout, mark as failed
+    if (
+      endedAt &&
+      currentTime.getTime() - endedAt.getTime() > TASK_SETTLEMENT_TIMEOUT_MS
+    ) {
+      console.log(
+        new Date().toLocaleString(),
+        `Task ${task.id} has exceeded settlement timeout of ${TASK_SETTLEMENT_TIMEOUT_MS / 1000 / 60 / 60} hours, marking as failed`,
+      );
+      isSuccessful = false;
+    }
+
+    let responseMessage: string;
+    if (isSuccessful) {
+      responseMessage = await payWinners(task);
+    } else {
+      responseMessage = await returnFunds(task);
+    }
+
+    task = await task.update({
+      status: isSuccessful ? "successful" : "failed",
+      deposit_address: null,
+    });
+
+    const serviceResponse = ServiceResponse.success("Task Has Ended", {
+      data: await getTaskJson(task, isCron ? undefined : authUser.id),
+      message: responseMessage,
+    });
+
+    return handleServiceResponse(serviceResponse, res);
   };
 }
 
