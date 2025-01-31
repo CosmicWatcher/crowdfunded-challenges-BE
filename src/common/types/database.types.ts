@@ -456,7 +456,7 @@ export interface Database {
     };
     Enums: {
       solana_address_type: "solana" | "token";
-      task_status: "active" | "successful" | "failed" | "deleted";
+      task_status: "active" | "ended" | "successful" | "failed" | "deleted";
       task_type: "community" | "personal";
     };
     CompositeTypes: {
