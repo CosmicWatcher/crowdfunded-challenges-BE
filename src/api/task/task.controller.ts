@@ -287,46 +287,51 @@ export function settleTask(isSuccessful: boolean) {
 
     // Check if task is deleted
     if (task.status === "deleted") {
-      const serviceResponse = ServiceResponse.failure(
-        "Cannot settle a deleted task",
-        null,
-      );
+      const serviceResponse = ServiceResponse.failure("Task not found", null);
       return handleServiceResponse(serviceResponse, res);
     }
 
     const currentTime = new Date();
     const endedAt = task.endedAt ? new Date(task.endedAt) : null;
 
-    // Handle active tasks
-    if (task.status === "active") {
-      if (!endedAt) {
-        const serviceResponse = ServiceResponse.failure(
-          "Task has no end date set",
-          null,
-        );
-        return handleServiceResponse(serviceResponse, res);
-      }
+    if (!endedAt) {
+      const serviceResponse = ServiceResponse.failure(
+        "Task has no end date set",
+        null,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
 
-      if (currentTime < endedAt) {
-        const serviceResponse = ServiceResponse.failure(
-          "Task has not ended yet",
-          null,
-        );
-        return handleServiceResponse(serviceResponse, res);
-      }
+    if (currentTime < endedAt) {
+      const serviceResponse = ServiceResponse.failure(
+        "Task has not ended yet",
+        null,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
 
-      // Update to ended status if past end date
-      if (currentTime > endedAt) {
-        await task.update({
-          status: "ended",
-        });
-      }
+    // Update to ended status if past end date
+    if (task.status === "active" && currentTime > endedAt) {
+      task = await task.update({
+        status: "ended",
+      });
     }
 
     // Verify task creator
     if (task.createdBy !== authUser.id && !isCron) {
       const serviceResponse = ServiceResponse.failure(
         "Only the task creator can settle the task",
+        null,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
+
+    if (
+      isCron &&
+      currentTime.getTime() - endedAt.getTime() <= TASK_SETTLEMENT_TIMEOUT_MS
+    ) {
+      const serviceResponse = ServiceResponse.failure(
+        "There is still time to settle the task",
         null,
       );
       return handleServiceResponse(serviceResponse, res);
@@ -356,10 +361,13 @@ export function settleTask(isSuccessful: boolean) {
       deposit_address: null,
     });
 
-    const serviceResponse = ServiceResponse.success("Task Has Ended", {
-      data: await getTaskJson(task, isCron ? undefined : authUser.id),
-      message: responseMessage,
-    });
+    const serviceResponse = ServiceResponse.success(
+      `Task Was ${isSuccessful ? "Successful" : "Failed"}`,
+      {
+        data: await getTaskJson(task, isCron ? undefined : authUser.id),
+        message: responseMessage,
+      },
+    );
 
     return handleServiceResponse(serviceResponse, res);
   };
