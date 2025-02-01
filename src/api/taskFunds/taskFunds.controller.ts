@@ -41,6 +41,13 @@ export async function createIntent(req: Request, res: Response) {
     return handleServiceResponse(serviceResponse, res);
   }
 
+  const currentTime = new Date();
+  const endedAt = task.endedAt ? new Date(task.endedAt) : null;
+  if (endedAt && currentTime > endedAt) {
+    const serviceResponse = ServiceResponse.failure("Task has ended", null);
+    return handleServiceResponse(serviceResponse, res);
+  }
+
   const depositAccount = await task.getSolanaAccount();
   if (!depositAccount) {
     const serviceResponse = ServiceResponse.failure(
