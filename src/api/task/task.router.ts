@@ -68,7 +68,7 @@ taskRouter.get(
   validateRequest(getTaskListSchema),
   getFeaturedTasks,
 );
-taskRouter.get("/:id/end", validateRequest(getTaskSchema), endTask);
+taskRouter.post("/:id/end", validateRequest(getTaskSchema), endTask);
 taskRouter.post(
   "/:id/success",
   validateRequest(getTaskSchema),
