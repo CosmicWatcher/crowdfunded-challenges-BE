@@ -21,6 +21,7 @@ import {
   ValidatedQuery,
 } from "@/common/types/custom.types";
 import { TaskResponse } from "@/common/types/response.types";
+import { sendTaskEndedEmail } from "@/common/utils/email";
 import {
   getPaginationJson,
   handleServiceResponse,
@@ -259,6 +260,25 @@ export async function endTask(req: Request, res: Response) {
   await task.update({
     status: "ended",
   });
+
+  if (!task.createdBy) {
+    const serviceResponse = ServiceResponse.failure(
+      "Task creator not found",
+      null,
+    );
+    return handleServiceResponse(serviceResponse, res);
+  }
+
+  const authUser = await User.getAuthUserData(task.createdBy);
+  if (!authUser.email) {
+    const serviceResponse = ServiceResponse.failure(
+      "Task creator has no email",
+      null,
+    );
+    return handleServiceResponse(serviceResponse, res);
+  }
+
+  await sendTaskEndedEmail(task.id, authUser.email);
 
   const serviceResponse = ServiceResponse.success("Task has been ended", null);
   return handleServiceResponse(serviceResponse, res);
