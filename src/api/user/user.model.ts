@@ -53,8 +53,8 @@ export class User {
     return !!data;
   }
 
-  async getAuthUserData(): Promise<AuthUser> {
-    const { data, error } = await supabase.auth.admin.getUserById(this.id);
+  static async getAuthUserData(userId: string): Promise<AuthUser> {
+    const { data, error } = await supabase.auth.admin.getUserById(userId);
     if (error) throw new Error(JSON.stringify(error));
     return data.user;
   }
