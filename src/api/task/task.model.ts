@@ -60,7 +60,12 @@ export class Task {
   }
 
   async getSolanaAccount(): Promise<SolanaAccount | null> {
-    if (this.status !== "active") return null;
+    if (
+      this.status === "successful" ||
+      this.status === "failed" ||
+      this.status === "deleted"
+    )
+      return null;
 
     try {
       if (!this.solanaAccountId) {
