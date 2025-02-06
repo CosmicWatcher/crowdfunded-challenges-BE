@@ -2,12 +2,16 @@ import { Kin } from "@code-wallet/currency";
 
 import { Task } from "@/api/task/task.model";
 import { User } from "@/api/user/user.model";
-import { Tables, TablesInsert } from "@/common/types/database.types";
+import {
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+} from "@/common/types/database.types";
 import { supabase } from "@/common/utils/supabase";
 
 export class TaskFunds {
   static readonly TABLE_NAME = "task_funding" as const;
-  static readonly QUARKS_PER_VOTE = 10000n * Kin.quarksPerKin;
+  static readonly KIN_PER_VOTE = 1000;
 
   constructor(private taskFundsData: Tables<typeof TaskFunds.TABLE_NAME>) {}
 
@@ -56,6 +60,19 @@ export class TaskFunds {
     }));
   }
 
+  static async findByIntent(intentId: string): Promise<TaskFunds | null> {
+    const { data, error } = await supabase
+      .from(TaskFunds.TABLE_NAME)
+      .select()
+      .eq("intent_id", intentId)
+      .maybeSingle();
+
+    if (error) throw new Error(JSON.stringify(error));
+    if (!data) return null;
+
+    return new TaskFunds(data);
+  }
+
   static async totalKinByTask(taskId: Task["id"]): Promise<Kin> {
     const { data, error } = await supabase
       .from(TaskFunds.TABLE_NAME)
@@ -91,7 +108,7 @@ export class TaskFunds {
     userId: User["id"],
   ): Promise<number> {
     const totalKin = await TaskFunds.totalKinByUser(taskId, userId);
-    return Math.floor(Number(totalKin.toQuarks() / TaskFunds.QUARKS_PER_VOTE));
+    return Math.floor(Number(totalKin.toDecimal() / TaskFunds.KIN_PER_VOTE));
   }
 
   static async insert(
@@ -105,5 +122,22 @@ export class TaskFunds {
 
     if (error) throw new Error(JSON.stringify(error));
     return new TaskFunds(data);
+  }
+
+  async update(
+    taskFundsData: TablesUpdate<typeof TaskFunds.TABLE_NAME>,
+  ): Promise<TaskFunds> {
+    const { data, error } = await supabase
+      .from(TaskFunds.TABLE_NAME)
+      .update(taskFundsData)
+      .eq("id", this.id)
+      .select()
+      .maybeSingle();
+
+    if (error) throw new Error(JSON.stringify(error));
+    if (!data) return this;
+
+    this.taskFundsData = data;
+    return this;
   }
 }

@@ -1,6 +1,10 @@
 import { Task } from "@/api/task/task.model";
 import { User } from "@/api/user/user.model";
-import { Tables, TablesInsert } from "@/common/types/database.types";
+import {
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+} from "@/common/types/database.types";
 import { supabase } from "@/common/utils/supabase";
 
 type TopSolutionsView = Tables<typeof Solution.TABLE_NAME> & { sum: number };
@@ -114,5 +118,22 @@ export class Solution {
     if (error) throw new Error(JSON.stringify(error));
 
     return new Solution(data);
+  }
+
+  async update(
+    solutionData: TablesUpdate<typeof Solution.TABLE_NAME>,
+  ): Promise<Solution> {
+    const { data, error } = await supabase
+      .from(Solution.TABLE_NAME)
+      .update(solutionData)
+      .eq("id", this.id)
+      .select()
+      .maybeSingle();
+
+    if (error) throw new Error(JSON.stringify(error));
+    if (!data) return this;
+
+    this.solutionData = data;
+    return this;
   }
 }

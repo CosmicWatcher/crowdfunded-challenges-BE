@@ -6,6 +6,7 @@ import {
   checkUsernameExists,
   getUserAccountById,
   updateUser,
+  validateSolanaAddress,
 } from "@/api/user/user.controller";
 import { DepositAddressType, User } from "@/api/user/user.model";
 import { FORM_LIMITS } from "@/common/configs/constants";
@@ -90,4 +91,9 @@ userRouter.post(
   "/check-username-exists",
   validateRequest(updateUserSchema),
   checkUsernameExists,
+);
+userRouter.post(
+  "/validate-solana-address",
+  validateRequest(z.object({ body: z.object({ address: z.string() }) })),
+  validateSolanaAddress,
 );

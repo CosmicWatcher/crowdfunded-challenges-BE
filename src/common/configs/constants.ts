@@ -15,3 +15,7 @@ export const FORM_LIMITS = {
 
 export const GET_TASKS_LIMIT_PER_PAGE = 10;
 export const GET_SOLUTIONS_LIMIT_PER_PAGE = 20;
+
+export const CRON_USER_ID = "cron";
+
+export const TASK_SETTLEMENT_TIMEOUT_MS = 1000 * 60 * 60 * 24; // 24 hours

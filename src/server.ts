@@ -14,8 +14,8 @@ import { taskFundsRouter } from "@/api/taskFunds/taskFunds.router";
 import { userRouter } from "@/api/user/user.router";
 import { env } from "@/common/configs/env";
 import errorHandler from "@/common/middleware/errorHandler";
-import rateLimiter from "@/common/middleware/rateLimiter";
 import requestLogger from "@/common/middleware/requestLogger";
+import { validateCron } from "@/common/middleware/validators";
 
 const logger = pino({ name: "server start" });
 const app: Express = express();
@@ -28,7 +28,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(helmet());
-app.use(rateLimiter);
+app.use(validateCron());
 
 // Request logging
 app.use(requestLogger);

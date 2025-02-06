@@ -1,8 +1,14 @@
-import { Keypair } from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
 
 import { Task } from "@/api/task/task.model";
 import { Tables, TablesUpdate } from "@/common/types/database.types";
-import { createAccountOnChain } from "@/common/utils/solana";
+import {
+  createAccountOnChain,
+  getOrCreateTokenAccount,
+  kinPubKey,
+  solanaConn,
+  solanaPayer,
+} from "@/common/utils/solana";
 import { supabase } from "@/common/utils/supabase";
 
 export class SolanaAccount {
@@ -63,7 +69,19 @@ export class SolanaAccount {
     return new SolanaAccount(data);
   }
 
-  static async createKeypair() {
+  static async getUniversalAccount() {
+    const { data, error } = await supabase
+      .from(SolanaAccount.TABLE_NAME)
+      .select()
+      .maybeSingle();
+
+    if (error) throw new Error(JSON.stringify(error));
+
+    if (!data) return await SolanaAccount.createAccount();
+    return new SolanaAccount(data);
+  }
+
+  static async createAccount() {
     const keypair = Keypair.generate();
     const { data, error } = await supabase
       .from(SolanaAccount.TABLE_NAME)
@@ -75,13 +93,21 @@ export class SolanaAccount {
       .single();
     if (error) throw new Error(JSON.stringify(error));
 
+    await createAccountOnChain(keypair);
+    await getOrCreateTokenAccount(
+      solanaConn,
+      solanaPayer,
+      kinPubKey,
+      new PublicKey(data.public_key),
+    );
+
     return new SolanaAccount(data);
   }
 
   static async getOrCreateAccount() {
-    let account = await SolanaAccount.getAccountNotInUse();
-    if (!account) account = await SolanaAccount.createKeypair();
-    await createAccountOnChain(account.keypair);
+    // let account = await SolanaAccount.getAccountNotInUse();
+    // if (!account) account = await SolanaAccount.createAccount();
+    const account = await SolanaAccount.getUniversalAccount();
 
     return account;
   }

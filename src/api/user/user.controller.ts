@@ -6,6 +6,7 @@ import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/custom.types";
 import { UserResponse } from "@/common/types/response.types";
 import { handleServiceResponse } from "@/common/utils/helpers";
+import { getSolanaAddressType } from "@/common/utils/solana";
 
 export function getUserJson(user: User): UserResponse {
   return {
@@ -91,4 +92,26 @@ export async function checkUsernameExists(req: Request, res: Response) {
     data: exists,
   });
   return handleServiceResponse(serviceResponse, res);
+}
+
+export async function validateSolanaAddress(req: Request, res: Response) {
+  const address = req.body.address as string;
+
+  try {
+    const type = await getSolanaAddressType(address);
+    const serviceResponse = ServiceResponse.success("Address validated", {
+      data: {
+        type,
+      },
+    });
+    return handleServiceResponse(serviceResponse, res);
+  } catch (err: unknown) {
+    const serviceResponse = ServiceResponse.failure(
+      err instanceof Error
+        ? `Address validation failed: ${err.message}`
+        : String(err),
+      null,
+    );
+    return handleServiceResponse(serviceResponse, res);
+  }
 }
