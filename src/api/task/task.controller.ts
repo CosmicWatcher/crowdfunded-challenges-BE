@@ -239,10 +239,15 @@ export async function endTask(req: Request, res: Response) {
 
   const task = await Task.getTaskById(taskId);
   if (!task) {
+    console.error(new Date().toLocaleString(), "Task not Found", { taskId });
     const serviceResponse = ServiceResponse.failure("Task not Found", null);
     return handleServiceResponse(serviceResponse, res);
   }
   if (task.status !== "active") {
+    console.error(new Date().toLocaleString(), "Task is not active", {
+      taskId,
+      status: task.status,
+    });
     const serviceResponse = ServiceResponse.failure("Task is not active", null);
     return handleServiceResponse(serviceResponse, res);
   }
@@ -250,6 +255,10 @@ export async function endTask(req: Request, res: Response) {
   const currentTime = new Date();
   const endedAt = task.endedAt ? new Date(task.endedAt) : null;
   if (!endedAt || currentTime < endedAt) {
+    console.error(new Date().toLocaleString(), "Task has not ended yet", {
+      taskId,
+      endedAt,
+    });
     const serviceResponse = ServiceResponse.failure(
       "Task has not ended yet",
       null,
@@ -262,23 +271,21 @@ export async function endTask(req: Request, res: Response) {
   });
 
   if (!task.createdBy) {
-    const serviceResponse = ServiceResponse.failure(
-      "Task creator not found",
-      null,
+    console.error(
+      new Date().toLocaleString(),
+      `Task ${task.id} has no creator`,
     );
-    return handleServiceResponse(serviceResponse, res);
+  } else {
+    const authUser = await User.getAuthUserData(task.createdBy);
+    if (!authUser.email) {
+      console.error(
+        new Date().toLocaleString(),
+        `Task ${task.id} has no email for creator ${task.createdBy}`,
+      );
+    } else {
+      await sendTaskEndedEmail(task.id, authUser.email);
+    }
   }
-
-  const authUser = await User.getAuthUserData(task.createdBy);
-  if (!authUser.email) {
-    const serviceResponse = ServiceResponse.failure(
-      "Task creator has no email",
-      null,
-    );
-    return handleServiceResponse(serviceResponse, res);
-  }
-
-  await sendTaskEndedEmail(task.id, authUser.email);
 
   const serviceResponse = ServiceResponse.success("Task has been ended", null);
   return handleServiceResponse(serviceResponse, res);
@@ -292,12 +299,18 @@ export function settleTask(isSuccessful: boolean) {
 
     let task = await Task.getTaskById(taskId);
     if (!task) {
+      console.error(new Date().toLocaleString(), "Task not Found", { taskId });
       const serviceResponse = ServiceResponse.failure("Task not Found", null);
       return handleServiceResponse(serviceResponse, res);
     }
 
     // Check if task is already settled
     if (task.status === "successful" || task.status === "failed") {
+      console.error(
+        new Date().toLocaleString(),
+        "Task has already been settled",
+        { taskId, status: task.status },
+      );
       const serviceResponse = ServiceResponse.failure(
         "Task has already been settled",
         null,
@@ -307,6 +320,10 @@ export function settleTask(isSuccessful: boolean) {
 
     // Check if task is deleted
     if (task.status === "deleted") {
+      console.error(new Date().toLocaleString(), "Task not found", {
+        taskId,
+        status: task.status,
+      });
       const serviceResponse = ServiceResponse.failure("Task not found", null);
       return handleServiceResponse(serviceResponse, res);
     }
@@ -315,6 +332,9 @@ export function settleTask(isSuccessful: boolean) {
     const endedAt = task.endedAt ? new Date(task.endedAt) : null;
 
     if (!endedAt) {
+      console.error(new Date().toLocaleString(), "Task has no end date set", {
+        taskId,
+      });
       const serviceResponse = ServiceResponse.failure(
         "Task has no end date set",
         null,
@@ -323,6 +343,10 @@ export function settleTask(isSuccessful: boolean) {
     }
 
     if (currentTime < endedAt) {
+      console.error(new Date().toLocaleString(), "Task has not ended yet", {
+        taskId,
+        endedAt,
+      });
       const serviceResponse = ServiceResponse.failure(
         "Task has not ended yet",
         null,
@@ -339,6 +363,11 @@ export function settleTask(isSuccessful: boolean) {
 
     // Verify task creator
     if (task.createdBy !== authUser.id && !isCron) {
+      console.error(
+        new Date().toLocaleString(),
+        "Only the task creator can settle the task",
+        { taskId, createdBy: task.createdBy, authUserId: authUser.id },
+      );
       const serviceResponse = ServiceResponse.failure(
         "Only the task creator can settle the task",
         null,
@@ -350,6 +379,16 @@ export function settleTask(isSuccessful: boolean) {
       isCron &&
       currentTime.getTime() - endedAt.getTime() <= TASK_SETTLEMENT_TIMEOUT_MS
     ) {
+      console.error(
+        new Date().toLocaleString(),
+        "There is still time to settle the task",
+        {
+          taskId,
+          timeRemaining:
+            TASK_SETTLEMENT_TIMEOUT_MS -
+            (currentTime.getTime() - endedAt.getTime()),
+        },
+      );
       const serviceResponse = ServiceResponse.failure(
         "There is still time to settle the task",
         null,
@@ -381,6 +420,10 @@ export function settleTask(isSuccessful: boolean) {
       deposit_address: null,
     });
 
+    console.log(
+      new Date().toLocaleString(),
+      `Task ${task.id} was ${isSuccessful ? "successful" : "failed"}: ${responseMessage}`,
+    );
     const serviceResponse = ServiceResponse.success(
       `Task Was ${isSuccessful ? "Successful" : "Failed"}`,
       {
