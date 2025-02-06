@@ -5,7 +5,7 @@ import helmet from "helmet";
 import { pino } from "pino";
 
 import { openAPIRouter } from "@/api-docs/openAPIRouter";
-import { codeWalletRouter } from "@/api/codeWallet/codeWallet.router";
+import { codeLoginRouter } from "@/api/codeLogin/codeLogin.router";
 import { healthCheckRouter } from "@/api/healthCheck/healthCheck.router";
 import { solutionRouter } from "@/api/solution/solution.router";
 import { solutionVotesRouter } from "@/api/solutionVotes/solutionVotes.router";
@@ -47,7 +47,7 @@ app.use("/tasks", taskRouter);
 app.use("/solutions", solutionRouter);
 app.use("/solution-votes", solutionVotesRouter);
 app.use("/task-funds", taskFundsRouter);
-app.use("/code-wallet", codeWalletRouter);
+app.use("/code-login", codeLoginRouter);
 
 // Swagger UI
 app.use(openAPIRouter);
