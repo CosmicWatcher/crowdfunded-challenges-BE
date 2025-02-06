@@ -7,6 +7,7 @@ import {
   getFeaturedTasks,
   getTaskById,
   getTaskList,
+  settleTask,
 } from "@/api/task/task.controller";
 import { TaskKind, TaskStatus } from "@/api/task/task.model";
 import { FORM_LIMITS } from "@/common/configs/constants";
@@ -57,6 +58,7 @@ const createTaskSchema = z.object({
       .max(FORM_LIMITS.TASK_CREATION.MAX_WINNERS.MAX, {
         message: `Max winners must be less than ${FORM_LIMITS.TASK_CREATION.MAX_WINNERS.MAX}`,
       }),
+    endedAt: z.string().datetime(),
   }),
 });
 
@@ -66,17 +68,18 @@ taskRouter.get(
   validateRequest(getTaskListSchema),
   getFeaturedTasks,
 );
+taskRouter.post("/:id/end", validateRequest(getTaskSchema), endTask);
 taskRouter.post(
   "/:id/success",
   validateRequest(getTaskSchema),
   validateUser(),
-  endTask(true),
+  settleTask(true),
 );
 taskRouter.post(
   "/:id/fail",
   validateRequest(getTaskSchema),
   validateUser(),
-  endTask(false),
+  settleTask(false),
 );
 taskRouter.get("/:id", validateRequest(getTaskSchema), getTaskById);
 // taskRouter.delete(

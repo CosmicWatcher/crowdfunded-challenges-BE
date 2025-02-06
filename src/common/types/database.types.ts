@@ -34,6 +34,21 @@ export interface Database {
   };
   public: {
     Tables: {
+      key_values: {
+        Row: {
+          data: Json | null;
+          id: string;
+        };
+        Insert: {
+          data?: Json | null;
+          id?: string;
+        };
+        Update: {
+          data?: Json | null;
+          id?: string;
+        };
+        Relationships: [];
+      };
       solana_accounts: {
         Row: {
           created_at: string;
@@ -350,30 +365,6 @@ export interface Database {
           },
         ];
       };
-      temp_wallets: {
-        Row: {
-          created_at: string;
-          id: string;
-          private_key: string;
-          public_key: string;
-          user_id: string | null;
-        };
-        Insert: {
-          created_at?: string;
-          id?: string;
-          private_key: string;
-          public_key: string;
-          user_id?: string | null;
-        };
-        Update: {
-          created_at?: string;
-          id?: string;
-          private_key?: string;
-          public_key?: string;
-          user_id?: string | null;
-        };
-        Relationships: [];
-      };
       users: {
         Row: {
           deposit_address: string | null;
@@ -452,15 +443,162 @@ export interface Database {
       };
     };
     Functions: {
-      [_ in never]: never;
+      bytea_to_text: {
+        Args: {
+          data: string;
+        };
+        Returns: string;
+      };
+      call_task_end_api: {
+        Args: Record<PropertyKey, never>;
+        Returns: undefined;
+      };
+      call_task_settle_api: {
+        Args: Record<PropertyKey, never>;
+        Returns: undefined;
+      };
+      http: {
+        Args: {
+          request: Database["public"]["CompositeTypes"]["http_request"];
+        };
+        Returns: unknown;
+      };
+      http_delete:
+        | {
+            Args: {
+              uri: string;
+            };
+            Returns: unknown;
+          }
+        | {
+            Args: {
+              uri: string;
+              content: string;
+              content_type: string;
+            };
+            Returns: unknown;
+          };
+      http_get:
+        | {
+            Args: {
+              uri: string;
+            };
+            Returns: unknown;
+          }
+        | {
+            Args: {
+              uri: string;
+              data: Json;
+            };
+            Returns: unknown;
+          };
+      http_head: {
+        Args: {
+          uri: string;
+        };
+        Returns: unknown;
+      };
+      http_header: {
+        Args: {
+          field: string;
+          value: string;
+        };
+        Returns: Database["public"]["CompositeTypes"]["http_header"];
+      };
+      http_list_curlopt: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          curlopt: string;
+          value: string;
+        }[];
+      };
+      http_patch: {
+        Args: {
+          uri: string;
+          content: string;
+          content_type: string;
+        };
+        Returns: unknown;
+      };
+      http_post:
+        | {
+            Args: {
+              uri: string;
+              content: string;
+              content_type: string;
+            };
+            Returns: unknown;
+          }
+        | {
+            Args: {
+              uri: string;
+              data: Json;
+            };
+            Returns: unknown;
+          };
+      http_put: {
+        Args: {
+          uri: string;
+          content: string;
+          content_type: string;
+        };
+        Returns: unknown;
+      };
+      http_reset_curlopt: {
+        Args: Record<PropertyKey, never>;
+        Returns: boolean;
+      };
+      http_set_curlopt: {
+        Args: {
+          curlopt: string;
+          value: string;
+        };
+        Returns: boolean;
+      };
+      text_to_bytea: {
+        Args: {
+          data: string;
+        };
+        Returns: string;
+      };
+      urlencode:
+        | {
+            Args: {
+              data: Json;
+            };
+            Returns: string;
+          }
+        | {
+            Args: {
+              string: string;
+            };
+            Returns: string;
+          };
     };
     Enums: {
       solana_address_type: "solana" | "token";
-      task_status: "active" | "successful" | "failed" | "deleted";
+      task_status: "active" | "successful" | "failed" | "deleted" | "ended";
       task_type: "community" | "personal";
     };
     CompositeTypes: {
-      [_ in never]: never;
+      http_header: {
+        field: string | null;
+        value: string | null;
+      };
+      http_request: {
+        // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+        method: unknown | null;
+        uri: string | null;
+        headers: Database["public"]["CompositeTypes"]["http_header"][] | null;
+        content_type: string | null;
+        content: string | null;
+      };
+      http_response: {
+        status: number | null;
+        content_type: string | null;
+        headers: Database["public"]["CompositeTypes"]["http_header"][] | null;
+        content: string | null;
+      };
     };
   };
 }
@@ -549,8 +687,8 @@ export type Enums<
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-    keyof PublicSchema["CompositeTypes"] | { schema: keyof Database },
+    | keyof PublicSchema["CompositeTypes"]
+    | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof Database;
   }

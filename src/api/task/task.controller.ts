@@ -1,4 +1,3 @@
-import { getOrCreateAssociatedTokenAccount, transfer } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { NextFunction, Request, Response } from "express";
 
@@ -11,18 +10,29 @@ import { Task, TaskStatus } from "@/api/task/task.model";
 import { TaskFunds } from "@/api/taskFunds/taskFunds.model";
 import { getUserJson } from "@/api/user/user.controller";
 import { User } from "@/api/user/user.model";
-import { GET_TASKS_LIMIT_PER_PAGE } from "@/common/configs/constants";
+import {
+  CRON_USER_ID,
+  GET_TASKS_LIMIT_PER_PAGE,
+  TASK_SETTLEMENT_TIMEOUT_MS,
+} from "@/common/configs/constants";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import {
   AuthenticatedRequest,
   ValidatedQuery,
 } from "@/common/types/custom.types";
 import { TaskResponse } from "@/common/types/response.types";
+import { sendTaskEndedEmail } from "@/common/utils/email";
 import {
   getPaginationJson,
   handleServiceResponse,
 } from "@/common/utils/helpers";
-import { kinPubKey, solanaConn, solanaPayer } from "@/common/utils/solana";
+import {
+  getOrCreateTokenAccount,
+  kinPubKey,
+  solanaConn,
+  solanaPayer,
+  transferToken,
+} from "@/common/utils/solana";
 
 export async function getTaskJson(
   task: Task,
@@ -155,14 +165,18 @@ export async function getTaskList(
     });
     return handleServiceResponse(serviceResponse, res);
   } catch (err) {
-    const error = JSON.parse(String(err).slice(7));
-    if (error.code == "PGRST103") {
-      const serviceResponse = ServiceResponse.failure(
-        "Requested page is out of range",
-        null,
-      );
-      return handleServiceResponse(serviceResponse, res);
-    } else return next(err);
+    try {
+      const error = JSON.parse(String(err).slice(7));
+      if (error.code == "PGRST103") {
+        const serviceResponse = ServiceResponse.failure(
+          "Requested page is out of range",
+          null,
+        );
+        return handleServiceResponse(serviceResponse, res);
+      } else return next(err);
+    } catch (err) {
+      return next(err);
+    }
   }
 }
 
@@ -187,11 +201,7 @@ export async function getFeaturedTasks(req: Request, res: Response) {
   return handleServiceResponse(serviceResponse, res);
 }
 
-export async function createTask(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
+export async function createTask(req: Request, res: Response) {
   const authUser = (req as AuthenticatedRequest).authUser;
 
   let account: SolanaAccount | null = null;
@@ -201,72 +211,228 @@ export async function createTask(
     // just log the error because it's not critical
     res.locals.err = error;
   }
-  try {
-    await Task.insert({
-      created_by: authUser.id,
-      kind: req.body.kind,
-      title: req.body.title,
-      details: req.body.description,
-      max_winners: req.body.maxWinners,
-      deposit_address: account ? account.id : null,
-    });
 
-    const serviceResponse = ServiceResponse.success("Task Created", null);
-    return handleServiceResponse(serviceResponse, res);
-  } catch (err) {
-    next(err);
-  }
+  const endedAtDate = new Date(req.body.endedAt as string);
+  const createdAt = new Date();
+  createdAt.setHours(endedAtDate.getHours());
+  createdAt.setMinutes(endedAtDate.getMinutes());
+  createdAt.setSeconds(endedAtDate.getSeconds());
+  createdAt.setMilliseconds(endedAtDate.getMilliseconds());
+
+  await Task.insert({
+    created_by: authUser.id,
+    kind: req.body.kind,
+    title: req.body.title,
+    details: req.body.description,
+    max_winners: req.body.maxWinners,
+    deposit_address: account ? account.id : null,
+    ended_at: req.body.endedAt,
+    created_at: createdAt.toISOString(),
+  });
+
+  const serviceResponse = ServiceResponse.success("Task Created", null);
+  return handleServiceResponse(serviceResponse, res);
 }
 
-export function endTask(isSuccessful: boolean) {
-  return async (req: Request, res: Response, next: NextFunction) => {
+export async function endTask(req: Request, res: Response) {
+  const taskId = req.params.id;
+
+  const task = await Task.getTaskById(taskId);
+  if (!task) {
+    console.error(new Date().toLocaleString(), "Task not Found", { taskId });
+    const serviceResponse = ServiceResponse.failure("Task not Found", null);
+    return handleServiceResponse(serviceResponse, res);
+  }
+  if (task.status !== "active") {
+    console.error(new Date().toLocaleString(), "Task is not active", {
+      taskId,
+      status: task.status,
+    });
+    const serviceResponse = ServiceResponse.failure("Task is not active", null);
+    return handleServiceResponse(serviceResponse, res);
+  }
+
+  const currentTime = new Date();
+  const endedAt = task.endedAt ? new Date(task.endedAt) : null;
+  if (!endedAt || currentTime < endedAt) {
+    console.error(new Date().toLocaleString(), "Task has not ended yet", {
+      taskId,
+      endedAt,
+    });
+    const serviceResponse = ServiceResponse.failure(
+      "Task has not ended yet",
+      null,
+    );
+    return handleServiceResponse(serviceResponse, res);
+  }
+
+  await task.update({
+    status: "ended",
+  });
+
+  if (!task.createdBy) {
+    console.error(
+      new Date().toLocaleString(),
+      `Task ${task.id} has no creator`,
+    );
+  } else {
+    const authUser = await User.getAuthUserData(task.createdBy);
+    if (!authUser.email) {
+      console.error(
+        new Date().toLocaleString(),
+        `Task ${task.id} has no email for creator ${task.createdBy}`,
+      );
+    } else {
+      await sendTaskEndedEmail(task.id, authUser.email);
+    }
+  }
+
+  const serviceResponse = ServiceResponse.success("Task has been ended", null);
+  return handleServiceResponse(serviceResponse, res);
+}
+
+export function settleTask(isSuccessful: boolean) {
+  return async (req: Request, res: Response) => {
     const taskId = req.params.id;
     const authUser = (req as AuthenticatedRequest).authUser;
+    const isCron = authUser?.id === CRON_USER_ID;
 
-    try {
-      let task = await Task.getTaskById(taskId);
-      if (!task) {
-        const serviceResponse = ServiceResponse.failure("Task not Found", null);
-        return handleServiceResponse(serviceResponse, res);
-      }
-      if (task.status !== "active") {
-        const serviceResponse = ServiceResponse.failure(
-          "Task is not in active status",
-          null,
-        );
-        return handleServiceResponse(serviceResponse, res);
-      }
-
-      if (task.createdBy !== authUser.id) {
-        const serviceResponse = ServiceResponse.failure(
-          "Only the task creator can end the task",
-          null,
-        );
-        return handleServiceResponse(serviceResponse, res);
-      }
-
-      let responseMessage: string;
-      if (isSuccessful) {
-        responseMessage = await payWinners(task);
-      } else {
-        responseMessage = await returnFunds(task);
-      }
-
-      task = await task.update({
-        status: isSuccessful ? "successful" : "failed",
-        deposit_address: null,
-        ended_at: new Date().toISOString(),
-      });
-
-      const serviceResponse = ServiceResponse.success("Task Has Ended", {
-        data: await getTaskJson(task, authUser.id),
-        message: responseMessage,
-      });
-
+    let task = await Task.getTaskById(taskId);
+    if (!task) {
+      console.error(new Date().toLocaleString(), "Task not Found", { taskId });
+      const serviceResponse = ServiceResponse.failure("Task not Found", null);
       return handleServiceResponse(serviceResponse, res);
-    } catch (e) {
-      next(e);
     }
+
+    // Check if task is already settled
+    if (task.status === "successful" || task.status === "failed") {
+      console.error(
+        new Date().toLocaleString(),
+        "Task has already been settled",
+        { taskId, status: task.status },
+      );
+      const serviceResponse = ServiceResponse.failure(
+        "Task has already been settled",
+        null,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
+
+    // Check if task is deleted
+    if (task.status === "deleted") {
+      console.error(new Date().toLocaleString(), "Task not found", {
+        taskId,
+        status: task.status,
+      });
+      const serviceResponse = ServiceResponse.failure("Task not found", null);
+      return handleServiceResponse(serviceResponse, res);
+    }
+
+    const currentTime = new Date();
+    const endedAt = task.endedAt ? new Date(task.endedAt) : null;
+
+    if (!endedAt) {
+      console.error(new Date().toLocaleString(), "Task has no end date set", {
+        taskId,
+      });
+      const serviceResponse = ServiceResponse.failure(
+        "Task has no end date set",
+        null,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
+
+    if (currentTime < endedAt) {
+      console.error(new Date().toLocaleString(), "Task has not ended yet", {
+        taskId,
+        endedAt,
+      });
+      const serviceResponse = ServiceResponse.failure(
+        "Task has not ended yet",
+        null,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
+
+    // Update to ended status if past end date
+    if (task.status === "active" && currentTime > endedAt) {
+      task = await task.update({
+        status: "ended",
+      });
+    }
+
+    // Verify task creator
+    if (task.createdBy !== authUser.id && !isCron) {
+      console.error(
+        new Date().toLocaleString(),
+        "Only the task creator can settle the task",
+        { taskId, createdBy: task.createdBy, authUserId: authUser.id },
+      );
+      const serviceResponse = ServiceResponse.failure(
+        "Only the task creator can settle the task",
+        null,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
+
+    if (
+      isCron &&
+      currentTime.getTime() - endedAt.getTime() <= TASK_SETTLEMENT_TIMEOUT_MS
+    ) {
+      console.error(
+        new Date().toLocaleString(),
+        "There is still time to settle the task",
+        {
+          taskId,
+          timeRemaining:
+            TASK_SETTLEMENT_TIMEOUT_MS -
+            (currentTime.getTime() - endedAt.getTime()),
+        },
+      );
+      const serviceResponse = ServiceResponse.failure(
+        "There is still time to settle the task",
+        null,
+      );
+      return handleServiceResponse(serviceResponse, res);
+    }
+
+    // if the task creator has not settled the task within the settlement timeout, mark as failed
+    if (
+      endedAt &&
+      currentTime.getTime() - endedAt.getTime() > TASK_SETTLEMENT_TIMEOUT_MS
+    ) {
+      console.log(
+        new Date().toLocaleString(),
+        `Task ${task.id} has exceeded settlement timeout of ${TASK_SETTLEMENT_TIMEOUT_MS / 1000 / 60 / 60} hours, marking as failed`,
+      );
+      isSuccessful = false;
+    }
+
+    let responseMessage: string;
+    if (isSuccessful) {
+      responseMessage = await payWinners(task);
+    } else {
+      responseMessage = await returnFunds(task);
+    }
+
+    task = await task.update({
+      status: isSuccessful ? "successful" : "failed",
+      deposit_address: null,
+    });
+
+    console.log(
+      new Date().toLocaleString(),
+      `Task ${task.id} was ${isSuccessful ? "successful" : "failed"}: ${responseMessage}`,
+    );
+    const serviceResponse = ServiceResponse.success(
+      `Task Was ${isSuccessful ? "Successful" : "Failed"}`,
+      {
+        data: await getTaskJson(task, isCron ? undefined : authUser.id),
+        message: responseMessage,
+      },
+    );
+
+    return handleServiceResponse(serviceResponse, res);
   };
 }
 
@@ -289,9 +455,13 @@ export async function payWinners(task: Task): Promise<string> {
     if (validWinners.length >= task.maxWinners) break;
     const creator = await solution.getCreator();
     if (creator?.depositAddress) {
+      await solution.update({
+        is_winner: true,
+      });
       validWinners.push({
         creatorId: creator.id,
         depositAddress: creator.depositAddress,
+        depositAddressType: creator.depositAddressType,
       });
     } else {
       console.error(
@@ -312,7 +482,7 @@ export async function payWinners(task: Task): Promise<string> {
   const quarksPerWinner = kinPerWinner.toQuarks();
 
   // Get task's solana account to transfer from
-  const sourceAccount = await getOrCreateAssociatedTokenAccount(
+  const sourceAccount = await getOrCreateTokenAccount(
     solanaConn,
     solanaPayer,
     kinPubKey,
@@ -321,21 +491,26 @@ export async function payWinners(task: Task): Promise<string> {
 
   // Distribute funds to each valid winner in parallel
   const transferPromises = validWinners.map(
-    async ({ creatorId, depositAddress }) => {
+    async ({ creatorId, depositAddress, depositAddressType }) => {
       try {
-        const creatorPubKey = new PublicKey(depositAddress);
-        const destinationAccount = await getOrCreateAssociatedTokenAccount(
-          solanaConn,
-          solanaPayer,
-          kinPubKey,
-          creatorPubKey,
-        );
+        let destination: PublicKey;
+        if (depositAddressType === "solana") {
+          const destinationAccount = await getOrCreateTokenAccount(
+            solanaConn,
+            solanaPayer,
+            kinPubKey,
+            new PublicKey(depositAddress),
+          );
+          destination = destinationAccount.address;
+        } else {
+          destination = new PublicKey(depositAddress);
+        }
 
-        const signature = await transfer(
+        const signature = await transferToken(
           solanaConn,
           solanaPayer,
           sourceAccount.address,
-          destinationAccount.address,
+          destination,
           taskSolanaAccount.keypair,
           quarksPerWinner,
         );
@@ -345,7 +520,7 @@ export async function payWinners(task: Task): Promise<string> {
           task_id: task.id,
           payee: creatorId,
           amount_quarks: Number(quarksPerWinner),
-          destination_address: depositAddress,
+          destination_address: destination.toBase58(),
         };
       } catch (error) {
         console.error(
@@ -389,7 +564,7 @@ export async function returnFunds(task: Task): Promise<string> {
   }
 
   // Get task's solana account to transfer from
-  const sourceAccount = await getOrCreateAssociatedTokenAccount(
+  const sourceAccount = await getOrCreateTokenAccount(
     solanaConn,
     solanaPayer,
     kinPubKey,
@@ -403,19 +578,24 @@ export async function returnFunds(task: Task): Promise<string> {
       if (!funder?.depositAddress)
         throw new Error("Funder has no deposit address");
 
-      const funderPubKey = new PublicKey(funder.depositAddress);
-      const destinationAccount = await getOrCreateAssociatedTokenAccount(
-        solanaConn,
-        solanaPayer,
-        kinPubKey,
-        funderPubKey,
-      );
+      let destination: PublicKey;
+      if (funder.depositAddressType === "solana") {
+        const destinationAccount = await getOrCreateTokenAccount(
+          solanaConn,
+          solanaPayer,
+          kinPubKey,
+          new PublicKey(funder.depositAddress),
+        );
+        destination = destinationAccount.address;
+      } else {
+        destination = new PublicKey(funder.depositAddress);
+      }
 
-      const signature = await transfer(
+      const signature = await transferToken(
         solanaConn,
         solanaPayer,
         sourceAccount.address,
-        destinationAccount.address,
+        destination,
         taskSolanaAccount.keypair,
         amount.toQuarks(),
       );
@@ -425,7 +605,7 @@ export async function returnFunds(task: Task): Promise<string> {
         task_id: task.id,
         funder_id: funderId,
         amount_quarks: Number(amount.toQuarks()),
-        destination_address: funder.depositAddress,
+        destination_address: destination.toBase58(),
       };
     } catch (error) {
       console.error(

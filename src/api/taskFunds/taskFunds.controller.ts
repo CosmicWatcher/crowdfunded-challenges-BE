@@ -1,34 +1,102 @@
-import { Kin } from "@code-wallet/currency";
-import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
+import { paymentIntents } from "@code-wallet/client";
+import { CurrencyCode, Kin } from "@code-wallet/currency";
+import { mintTo } from "@solana/spl-token";
 import { NextFunction, Request, Response } from "express";
 
 import { getTaskJson } from "@/api/task/task.controller";
 import { Task } from "@/api/task/task.model";
 import { TaskFunds } from "@/api/taskFunds/taskFunds.model";
+import { env } from "@/common/configs/env";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { AuthenticatedRequest } from "@/common/types/custom.types";
-import { TaskResponse } from "@/common/types/response.types";
-import { handleServiceResponse } from "@/common/utils/helpers";
-import { createAccountOnChain, kinPubKey } from "@/common/utils/solana";
+import {
+  CreateIntentResponse,
+  TaskResponse,
+} from "@/common/types/response.types";
+import {
+  handleServiceResponse,
+  verifyCodeWalletWebhookToken,
+} from "@/common/utils/helpers";
+import {
+  createAccountOnChain,
+  getOrCreateTokenAccount,
+  kinPubKey,
+} from "@/common/utils/solana";
 import { solanaPayer } from "@/common/utils/solana";
 import { solanaConn } from "@/common/utils/solana";
 
-// export async function get(req: Request, res: Response, next: NextFunction) {
-//   const authUser = (req as AuthenticatedRequest).authUser;
+export async function createIntent(req: Request, res: Response) {
+  const authUser = (req as AuthenticatedRequest).authUser;
+  const taskId = req.params.id;
+  const amount: number = req.body.amount;
+  const currency: CurrencyCode = req.body.currency;
 
-//   try {
-//     const serviceResponse =
-//       ServiceResponse.success<SolutionVoteDetailsResponse>(
-//         "Found Solution Vote Details",
-//         {
-//           data: await getVoteDetailsJson(req.params.id, authUser.id),
-//         },
-//       );
-//     return handleServiceResponse(serviceResponse, res);
-//   } catch (err) {
-//     next(err);
-//   }
-// }
+  const task = await Task.getTaskById(taskId);
+  if (!task) {
+    const serviceResponse = ServiceResponse.failure("Task not found", null);
+    return handleServiceResponse(serviceResponse, res);
+  }
+  if (task.status !== "active") {
+    const serviceResponse = ServiceResponse.failure("Task is not active", null);
+    return handleServiceResponse(serviceResponse, res);
+  }
+
+  const currentTime = new Date();
+  const endedAt = task.endedAt ? new Date(task.endedAt) : null;
+  if (endedAt && currentTime > endedAt) {
+    const serviceResponse = ServiceResponse.failure("Task has ended", null);
+    return handleServiceResponse(serviceResponse, res);
+  }
+
+  const depositAccount = await task.getSolanaAccount();
+  if (!depositAccount) {
+    const serviceResponse = ServiceResponse.failure(
+      "Task has no deposit address",
+      null,
+    );
+    return handleServiceResponse(serviceResponse, res);
+  }
+
+  const tokenAccount = await getOrCreateTokenAccount(
+    solanaConn,
+    solanaPayer,
+    kinPubKey,
+    depositAccount.keypair.publicKey,
+  );
+  const destination = tokenAccount.address.toBase58();
+
+  const { clientSecret, id } = await paymentIntents.create({
+    mode: "payment",
+    amount,
+    currency,
+    destination,
+    webhook: {
+      url: `${env.API_URL}/task-funds/record-contribution`,
+    },
+  });
+
+  await TaskFunds.insert({
+    task_id: taskId,
+    funded_by: authUser.id,
+    intent_id: id,
+    amount_fiat: amount,
+    currency: currency.toUpperCase(),
+    destination_address: destination,
+  });
+
+  const serviceResponse = ServiceResponse.success<CreateIntentResponse>(
+    "Intent Created",
+    {
+      data: {
+        clientSecret,
+        amount,
+        currency,
+        destination,
+      },
+    },
+  );
+  return handleServiceResponse(serviceResponse, res);
+}
 
 export async function mockRecordContribution(
   req: Request,
@@ -76,13 +144,13 @@ export async function mockRecordContribution(
     }
 
     await createAccountOnChain(depositAccount.keypair);
-    const tokenAccount = await getOrCreateAssociatedTokenAccount(
+    const tokenAccount = await getOrCreateTokenAccount(
       solanaConn,
       solanaPayer,
       kinPubKey,
       depositAccount.keypair.publicKey,
     );
-    const sig = await mintTo(
+    await mintTo(
       solanaConn,
       solanaPayer,
       kinPubKey,
@@ -106,4 +174,57 @@ export async function mockRecordContribution(
   } catch (err) {
     next(err);
   }
+}
+
+export async function recordContribution(req: Request, res: Response) {
+  const token: string = req.body;
+
+  interface Payload {
+    amount: number;
+    currency: string;
+    destination: string;
+    exchangeRate: number;
+    intent: string;
+    quarks: number;
+    state: string;
+  }
+
+  // Verify the JWT token
+  const publicKey = env.CODE_SEQUENCER_PUBLIC_KEY;
+  let payloadJSON: Payload;
+  try {
+    payloadJSON = (await verifyCodeWalletWebhookToken(
+      token,
+      publicKey,
+    )) as unknown as Payload;
+  } catch (error) {
+    console.warn("Error verifying JWT:", error);
+    const serviceResponse = ServiceResponse.failure("Invalid token", null);
+    return handleServiceResponse(serviceResponse, res);
+  }
+
+  const payment = await TaskFunds.findByIntent(payloadJSON.intent);
+  if (!payment) {
+    console.error(`Payment with intent ${payloadJSON.intent} not found`);
+  } else if (payloadJSON.state !== "SUBMITTED") {
+    console.error("Unexpected payment state:", payloadJSON.state);
+    const serviceResponse = ServiceResponse.failure(
+      "Unexpected payment state",
+      null,
+    );
+    return handleServiceResponse(serviceResponse, res);
+  } else {
+    await payment.update({
+      amount_fiat: payloadJSON.amount,
+      currency: payloadJSON.currency,
+      destination_address: payloadJSON.destination,
+      exchange_rate: payloadJSON.exchangeRate,
+      intent_id: payloadJSON.intent,
+      amount_quarks: payloadJSON.quarks,
+      funded_at: new Date().toISOString(),
+    });
+  }
+
+  const serviceResponse = ServiceResponse.success("Payment Recorded", null);
+  return handleServiceResponse(serviceResponse, res);
 }

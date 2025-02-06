@@ -92,43 +92,39 @@ export async function getSolutionList(
   }
 }
 
-export async function createSolution(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
+export async function createSolution(req: Request, res: Response) {
   const authUser = (req as AuthenticatedRequest).authUser;
   const taskId = req.body.taskId as Task["id"];
   const title = req.body.title as Task["title"];
   const details = req.body.description as Task["details"];
 
-  try {
-    const task = await Task.getTaskById(taskId);
-    if (!task) {
-      const serviceResponse = ServiceResponse.failure("Task not found", null);
-      return handleServiceResponse(serviceResponse, res);
-    }
-    if (task.status !== "active") {
-      const serviceResponse = ServiceResponse.failure(
-        "Task is not active",
-        null,
-      );
-      return handleServiceResponse(serviceResponse, res);
-    }
-
-    const solution = await Solution.insert({
-      created_by: authUser.id,
-      task_id: task.id,
-      title,
-      details,
-    });
-
-    const serviceResponse = ServiceResponse.success<SolutionResponse>(
-      "Solution Created",
-      { data: await getSolutionJson(solution, authUser.id) },
-    );
+  const task = await Task.getTaskById(taskId);
+  if (!task) {
+    const serviceResponse = ServiceResponse.failure("Task not found", null);
     return handleServiceResponse(serviceResponse, res);
-  } catch (err) {
-    next(err);
   }
+  if (task.status !== "active") {
+    const serviceResponse = ServiceResponse.failure("Task is not active", null);
+    return handleServiceResponse(serviceResponse, res);
+  }
+
+  const currentTime = new Date();
+  const endedAt = task.endedAt ? new Date(task.endedAt) : null;
+  if (endedAt && currentTime > endedAt) {
+    const serviceResponse = ServiceResponse.failure("Task has ended", null);
+    return handleServiceResponse(serviceResponse, res);
+  }
+
+  const solution = await Solution.insert({
+    created_by: authUser.id,
+    task_id: task.id,
+    title,
+    details,
+  });
+
+  const serviceResponse = ServiceResponse.success<SolutionResponse>(
+    "Solution Created",
+    { data: await getSolutionJson(solution, authUser.id) },
+  );
+  return handleServiceResponse(serviceResponse, res);
 }

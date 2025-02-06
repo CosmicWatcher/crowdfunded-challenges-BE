@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { ZodError, ZodSchema, z } from "zod";
 
+import { CRON_USER_ID } from "@/common/configs/constants";
+import { env } from "@/common/configs/env";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import {
   AuthenticatedRequest,
@@ -50,6 +52,11 @@ export const validateRequest =
 
 export const validateUser =
   () => async (req: Request, res: Response, next: NextFunction) => {
+    // Check if already authenticated as a cron job
+    if ((req as AuthenticatedRequest).authUser?.id === CRON_USER_ID) {
+      return next();
+    }
+
     const jwt = getJwtToken(req);
     if (!jwt) {
       const serviceResponse = ServiceResponse.failure(
@@ -72,6 +79,20 @@ export const validateUser =
       return handleServiceResponse(serviceResponse, res);
     }
     (req as AuthenticatedRequest).authUser = data.user;
+
+    next();
+  };
+
+export const validateCron =
+  () => (req: Request, _res: Response, next: NextFunction) => {
+    const cronSecret = req.headers["cron-secret"];
+
+    // If cron secret is present, the request is coming from a cron job
+    if (cronSecret === env.CRON_SECRET) {
+      (req as AuthenticatedRequest).authUser = {
+        id: CRON_USER_ID,
+      };
+    }
 
     next();
   };

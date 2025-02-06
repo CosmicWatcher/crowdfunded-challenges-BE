@@ -7,3 +7,5 @@ export interface AuthenticatedRequest extends Request {
 export interface ValidatedQuery extends Request {
   queryParams: Record<string, unknown>;
 }
+
+export type SolanaAddressType = "solana" | "token";
