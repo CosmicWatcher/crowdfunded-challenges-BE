@@ -13,6 +13,7 @@ import {
 } from "@/common/types/custom.types";
 import { SolutionResponse } from "@/common/types/response.types";
 import {
+  getIdFromJwt,
   getPaginationJson,
   handleServiceResponse,
 } from "@/common/utils/helpers";
@@ -54,7 +55,7 @@ export async function getSolutionList(
 
   let userId: User["id"] | null = null;
   try {
-    userId = await User.getIdFromJwt(req);
+    userId = await getIdFromJwt(req);
   } catch (err) {
     res.locals.err = err;
   }

@@ -1,8 +1,6 @@
 import { User as AuthUser } from "@supabase/supabase-js";
-import { Request } from "express";
 
 import { Tables, TablesUpdate } from "@/common/types/database.types";
-import { getJwtToken } from "@/common/utils/helpers";
 import { supabase } from "@/common/utils/supabase";
 
 export type DepositAddressType = Tables<
@@ -59,14 +57,26 @@ export class User {
     return data.user;
   }
 
-  static async getIdFromJwt(req: Request): Promise<User["id"] | null> {
-    const jwt = getJwtToken(req);
-    if (!jwt) return null;
+  static async getCodeLoginUser(codeUserId: string): Promise<User> {
+    const { data, error } = await supabase
+      .from(User.TABLE_NAME)
+      .select()
+      .eq("code_userid", codeUserId)
+      .maybeSingle();
 
-    const { data, error } = await supabase.auth.getUser(jwt);
     if (error) throw new Error(JSON.stringify(error));
+    if (data) return new User(data);
 
-    return data.user.id;
+    const { data: newData, error: error2 } = await supabase
+      .from(User.TABLE_NAME)
+      .insert({
+        code_userid: codeUserId,
+      })
+      .select()
+      .single();
+
+    if (error2) throw new Error(JSON.stringify(error2));
+    return new User(newData);
   }
 
   async update(userData: TablesUpdate<typeof User.TABLE_NAME>): Promise<User> {
