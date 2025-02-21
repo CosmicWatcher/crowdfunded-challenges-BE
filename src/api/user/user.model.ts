@@ -43,7 +43,7 @@ export class User {
     const { data, error } = await supabase
       .from(User.TABLE_NAME)
       .select("username")
-      .eq("username", username.toLowerCase())
+      .ilike("username", username)
       .maybeSingle();
 
     if (error) throw new Error(JSON.stringify(error));
