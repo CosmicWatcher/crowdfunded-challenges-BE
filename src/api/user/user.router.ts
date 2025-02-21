@@ -1,5 +1,4 @@
-import { Keypair } from "@solana/web3.js";
-import express, { Request, Response, Router } from "express";
+import express, { Router } from "express";
 import { z } from "zod";
 
 import {
@@ -8,13 +7,9 @@ import {
   updateUser,
   validateSolanaAddress,
 } from "@/api/user/user.controller";
-import { DepositAddressType, User } from "@/api/user/user.model";
+import { DepositAddressType } from "@/api/user/user.model";
 import { FORM_LIMITS } from "@/common/configs/constants";
 import { validateRequest, validateUser } from "@/common/middleware/validators";
-import { ServiceResponse } from "@/common/models/serviceResponse";
-import { handleServiceResponse } from "@/common/utils/helpers";
-import { createAccountOnChain } from "@/common/utils/solana";
-import { supabase } from "@/common/utils/supabase";
 
 export const userRouter: Router = express.Router();
 
@@ -48,37 +43,37 @@ const updateUserSchema = z.object({
   }),
 });
 
-userRouter.get("/temp-wallet-creator", async (_req: Request, res: Response) => {
-  try {
-    const { data: userData, error: error1 } = await supabase
-      .from(User.TABLE_NAME)
-      .select();
-    if (error1) throw new Error(JSON.stringify(error1));
-    console.log("userData", userData);
+// userRouter.get("/temp-wallet-creator", async (_req: Request, res: Response) => {
+//   try {
+//     const { data: userData, error: error1 } = await supabase
+//       .from(User.TABLE_NAME)
+//       .select();
+//     if (error1) throw new Error(JSON.stringify(error1));
+//     console.log("userData", userData);
 
-    for (const user of userData) {
-      const userId = user.id;
-      const keypair = Keypair.generate();
-      const { error: error2 } = await supabase.from("temp_wallets").insert({
-        private_key: JSON.stringify(Array.from(keypair.secretKey)),
-        public_key: keypair.publicKey.toBase58(),
-        user_id: userId,
-      });
-      if (error2) throw new Error(JSON.stringify(error2));
+//     for (const user of userData) {
+//       const userId = user.id;
+//       const keypair = Keypair.generate();
+//       const { error: error2 } = await supabase.from("temp_wallets").insert({
+//         private_key: JSON.stringify(Array.from(keypair.secretKey)),
+//         public_key: keypair.publicKey.toBase58(),
+//         user_id: userId,
+//       });
+//       if (error2) throw new Error(JSON.stringify(error2));
 
-      await createAccountOnChain(keypair);
+//       await createAccountOnChain(keypair);
 
-      const { error: error3 } = await supabase
-        .from(User.TABLE_NAME)
-        .update({ deposit_address: keypair.publicKey.toBase58() })
-        .eq("id", userId);
-      if (error3) throw new Error(JSON.stringify(error3));
-    }
-  } catch (error) {
-    const serviceResponse = ServiceResponse.failure(String(error), null);
-    return handleServiceResponse(serviceResponse, res);
-  }
-});
+//       const { error: error3 } = await supabase
+//         .from(User.TABLE_NAME)
+//         .update({ deposit_address: keypair.publicKey.toBase58() })
+//         .eq("id", userId);
+//       if (error3) throw new Error(JSON.stringify(error3));
+//     }
+//   } catch (error) {
+//     const serviceResponse = ServiceResponse.failure(String(error), null);
+//     return handleServiceResponse(serviceResponse, res);
+//   }
+// });
 
 userRouter.get("/account", validateUser(), getUserAccountById);
 userRouter.put(

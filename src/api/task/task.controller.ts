@@ -23,6 +23,7 @@ import {
 import { TaskResponse } from "@/common/types/response.types";
 import { sendTaskEndedEmail } from "@/common/utils/email";
 import {
+  getIdFromJwt,
   getPaginationJson,
   handleServiceResponse,
 } from "@/common/utils/helpers";
@@ -93,7 +94,7 @@ export async function getTaskById(
 
   let userId: User["id"] | null = null;
   try {
-    userId = await User.getIdFromJwt(req);
+    userId = await getIdFromJwt(req);
   } catch (err) {
     res.locals.err = err;
   }
@@ -141,7 +142,7 @@ export async function getTaskList(
   const rangeEnd = rangeStart + RETURN_COUNT - 1;
   let userId: User["id"] | null = null;
   try {
-    userId = await User.getIdFromJwt(req);
+    userId = await getIdFromJwt(req);
   } catch (err) {
     res.locals.err = err;
   }
@@ -183,7 +184,7 @@ export async function getTaskList(
 export async function getFeaturedTasks(req: Request, res: Response) {
   let userId: User["id"] | null = null;
   try {
-    userId = await User.getIdFromJwt(req);
+    userId = await getIdFromJwt(req);
   } catch (err) {
     res.locals.err = err;
   }

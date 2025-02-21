@@ -1,10 +1,13 @@
 import { PublicKey } from "@code-wallet/keys";
 import { createPublicKey } from "crypto";
 import { Request, Response } from "express";
-import { jwtVerify } from "jose";
+import { importSPKI, jwtVerify } from "jose";
 
+import { User } from "@/api/user/user.model";
+import { env } from "@/common/configs/env";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { ResponsePagination } from "@/common/types/response.types";
+import { supabase } from "@/common/utils/supabase";
 
 export function handleServiceResponse(
   serviceResponse: ServiceResponse<unknown>,
@@ -29,10 +32,33 @@ export function getPaginationJson(
   };
 }
 
-export function getJwtToken(req: Request): string | null {
+export function getJwtToken(req: Request): {
+  token: string;
+  loginMethod: "code-login" | "supabase";
+} | null {
   const jwt = req.headers.authorization;
-  if (jwt?.startsWith("Bearer ")) return jwt.slice(7);
+
+  if (jwt?.startsWith("code-login "))
+    return { token: jwt.slice(11), loginMethod: "code-login" };
+  else if (jwt?.startsWith("supabase "))
+    return { token: jwt.slice(9), loginMethod: "supabase" };
   else return null;
+}
+
+export async function getIdFromJwt(req: Request): Promise<User["id"] | null> {
+  const jwt = getJwtToken(req);
+  if (!jwt) return null;
+
+  if (jwt.loginMethod === "code-login") {
+    const payload = await verifyJwtToken(jwt.token);
+    return payload.userId as string;
+  } else if (jwt.loginMethod === "supabase") {
+    const { data, error } = await supabase.auth.getUser(jwt.token);
+    if (error) throw new Error(JSON.stringify(error));
+    return data.user.id;
+  }
+
+  return null;
 }
 
 export async function verifyCodeWalletWebhookToken(
@@ -60,5 +86,11 @@ export async function verifyCodeWalletWebhookToken(
     algorithms: ["EdDSA"],
   });
 
+  return payload;
+}
+
+export async function verifyJwtToken(token: string) {
+  const publicKey = await importSPKI(env.JWT_PUBLIC_KEY, "EdDSA");
+  const { payload } = await jwtVerify(token, publicKey);
   return payload;
 }

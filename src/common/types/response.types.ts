@@ -85,3 +85,9 @@ export interface CreateIntentResponse {
 export interface SolanaAddressValidationResponse {
   type: SolanaAddressType | null;
 }
+
+export interface CodeLoginResponse {
+  jwt: string;
+  userId: string;
+  expiresAt: number;
+}

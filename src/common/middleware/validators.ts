@@ -9,8 +9,7 @@ import {
   AuthenticatedRequest,
   ValidatedQuery,
 } from "@/common/types/custom.types";
-import { getJwtToken, handleServiceResponse } from "@/common/utils/helpers";
-import { supabase } from "@/common/utils/supabase";
+import { getIdFromJwt, handleServiceResponse } from "@/common/utils/helpers";
 
 export const commonValidations = {
   id: z.string().uuid({ message: "Invalid ID" }),
@@ -57,28 +56,28 @@ export const validateUser =
       return next();
     }
 
-    const jwt = getJwtToken(req);
-    if (!jwt) {
+    try {
+      const userId = await getIdFromJwt(req);
+      if (!userId) {
+        const serviceResponse = ServiceResponse.failure(
+          "A valid JWT token must be present in the authorization header",
+          null,
+          StatusCodes.UNAUTHORIZED,
+        );
+        return handleServiceResponse(serviceResponse, res);
+      }
+      (req as AuthenticatedRequest).authUser = {
+        id: userId,
+      };
+    } catch (error) {
+      console.warn("Error verifying JWT:", error);
       const serviceResponse = ServiceResponse.failure(
-        "A valid bearer JWT token must be present in the authorization header",
+        "Invalid access token",
         null,
         StatusCodes.UNAUTHORIZED,
       );
       return handleServiceResponse(serviceResponse, res);
     }
-
-    const { data, error } = await supabase.auth.getUser(jwt);
-    if (error) {
-      const serviceResponse = ServiceResponse.failure(
-        error.message,
-        null,
-        error.status !== undefined && error.status in StatusCodes
-          ? error.status
-          : StatusCodes.INTERNAL_SERVER_ERROR,
-      );
-      return handleServiceResponse(serviceResponse, res);
-    }
-    (req as AuthenticatedRequest).authUser = data.user;
 
     next();
   };

@@ -1,9 +1,14 @@
-import { getStatus, getUserId, loginIntents } from "@code-wallet/client";
+import { getUserId, loginIntents } from "@code-wallet/client";
 import { Keypair } from "@code-wallet/keys";
 import { type Request, type Response } from "express";
+import { StatusCodes } from "http-status-codes";
+import { SignJWT, importPKCS8 } from "jose";
 
+import { CodeLogin } from "@/api/codeLogin/codeLogin.model";
+import { User } from "@/api/user/user.model";
 import { env } from "@/common/configs/env";
 import { ServiceResponse } from "@/common/models/serviceResponse";
+import { CodeLoginResponse } from "@/common/types/response.types";
 import { handleServiceResponse } from "@/common/utils/helpers";
 
 export function getVerifier(_req: Request, res: Response) {
@@ -35,8 +40,12 @@ export async function createLoginIntent(_req: Request, res: Response) {
 
     signers: [verifier],
     // webhook: {
-    //   url: "https://example.com/webhook",
+    //   url: `https://devapi.kinquest.app/code-login/verify-login`,
     // },
+  });
+
+  await CodeLogin.insert({
+    intent_id: id,
   });
 
   console.log(new Date().toLocaleTimeString(), "Created intent", id);
@@ -56,17 +65,50 @@ export async function verifyLogin(req: Request, res: Response) {
   const intent = req.params.id;
   const verifier = Keypair.fromSecretKey(env.CODE_VERFIER_SECRET);
 
-  const status = await getStatus({ intent });
-  const user = await getUserId({ intent, verifier });
+  const codeUser = await getUserId({ intent, verifier });
+  if (codeUser.userId === undefined) {
+    console.error("Code login failed: codeUser is undefined");
+    const serviceResponse = ServiceResponse.failure(
+      "Code login failed",
+      null,
+      StatusCodes.UNAUTHORIZED,
+    );
+    return handleServiceResponse(serviceResponse, res);
+  }
 
-  console.log(
-    new Date().toLocaleTimeString(),
-    "status: ",
-    status,
-    "user: ",
-    user,
+  const isValid = await CodeLogin.isIntentValid(intent);
+  if (!isValid) {
+    console.error("Code login failed: intent is invalid");
+    const serviceResponse = ServiceResponse.failure(
+      "Code login failed",
+      null,
+      StatusCodes.UNAUTHORIZED,
+    );
+    return handleServiceResponse(serviceResponse, res);
+  }
+
+  const user = await User.getCodeLoginUser(codeUser.userId);
+
+  const alg = "EdDSA";
+  const expiresAt = Date.now() + env.JWT_EXPIRATION_TIME;
+  const privateKey = await importPKCS8(env.JWT_PRIVATE_KEY, alg);
+  const jwt = await new SignJWT({
+    userId: user.id,
+  })
+    .setProtectedHeader({ alg })
+    .setIssuedAt()
+    .setExpirationTime(expiresAt / 1000)
+    .sign(privateKey);
+
+  const serviceResponse = ServiceResponse.success<CodeLoginResponse>(
+    "Code login successful",
+    {
+      data: {
+        jwt,
+        userId: user.id,
+        expiresAt,
+      },
+    },
   );
-
-  const serviceResponse = ServiceResponse.success("Login successful", null);
   return handleServiceResponse(serviceResponse, res);
 }
