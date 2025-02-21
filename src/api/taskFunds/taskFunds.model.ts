@@ -51,6 +51,7 @@ export class TaskFunds {
       .from(TaskFunds.TABLE_NAME)
       .select("funded_by, amount_quarks.sum()")
       .eq("task_id", taskId)
+      .gt("amount_quarks", 0)
       .returns<{ funded_by: User["id"]; sum: number }[]>();
 
     if (error) throw new Error(JSON.stringify(error));
