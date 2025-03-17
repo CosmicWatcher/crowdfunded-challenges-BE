@@ -16,7 +16,7 @@ dist-ssr
 .env
 *.db
 *.db-journal
-supabase/seed_prod_devnet.sql
+supabase/seed.sql
 
 # Editor directories and files
 !.vscode/extensions.json
